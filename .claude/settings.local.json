@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed \"s|image: require\\(''@\\\\/assets\\\\/exercise_images\\\\/\\\\\\(.*\\\\\\)''\\)|image: ''\\\\1''|g\" assets/data/generatedExercises.ts)",
+      "Bash(mv assets/data/generatedExercises_new.ts assets/data/generatedExercises.ts)",
+      "Bash(node -e \":*)",
+      "Bash(npx expo *)",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/expo/package.json'\\); const rnw = pkg.peerDependencies?.['react-native-web'] || pkg.dependencies?.['react-native-web'] || 'not found'; console.log\\('Expo peer dep react-native-web:', rnw\\);\")",
+      "Bash(npx tsc *)",
+      "Bash(curl *)"
+    ]
+  }
+}

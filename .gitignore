@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Build outputs
+android/
+ios/
+
+# Credentials & secrets
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+google-service-account.json
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp / scripts
+generate-icons.js
+templates/

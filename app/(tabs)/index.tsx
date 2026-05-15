@@ -1,0 +1,377 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
+import { ErrorView } from '@/components/shared/ErrorView';
+import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { WeeklyActivityWidget } from '@/components/WeeklyActivityWidget';
+import { useColors } from '@/hooks/use-colors';
+import {
+  TemplateDetail,
+  WorkoutTemplateSummary,
+  getActiveWorkout,
+  getTemplateWithExercises,
+  getUserSetting,
+  getWorkoutStreak,
+  getWorkoutTemplates,
+  initDatabase,
+  startWorkoutFromTemplate,
+} from '@/services/DatabaseService';
+import { useFocusEffect, useRouter } from 'expo-router';
+
+function formatLastPerformed(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Aujourd'hui";
+  if (days === 1) return 'Hier';
+  if (days < 7) return `Il y a ${days} jours`;
+  const d = new Date(isoDate);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
+export default function HomeScreen() {
+  const colors = useColors();
+  const router = useRouter();
+
+  const [streak, setStreak] = useState(0);
+  const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailsCache, setDetailsCache] = useState<Map<string, TemplateDetail>>(new Map());
+  const [userName, setUserName] = useState('');
+  const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setError(null);
+    try {
+      await initDatabase();
+      const streakData = await getWorkoutStreak();
+      const templatesData = await getWorkoutTemplates();
+      const nameData = await getUserSetting('user_name', '');
+      const activeData = await getActiveWorkout();
+      setStreak(streakData);
+      setTemplates(templatesData);
+      setUserName(nameData);
+      setActiveWorkout(activeData);
+      setBannerDismissed(false);
+    } catch (e) {
+      console.error('[home] loadData error:', e);
+      setError('Impossible de charger les données.');
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
+  const handleToggleExpand = useCallback(async (tpl: WorkoutTemplateSummary) => {
+    const nextId = expandedId === tpl.id ? null : tpl.id;
+    setExpandedId(nextId);
+
+    if (nextId && !detailsCache.has(nextId)) {
+      const detail = await getTemplateWithExercises(nextId);
+      if (detail) {
+        setDetailsCache(prev => new Map(prev).set(nextId, detail));
+      }
+    }
+  }, [expandedId, detailsCache]);
+
+  const handleStartFromTemplate = useCallback(async (templateId: string) => {
+    try {
+      const existing = await getActiveWorkout();
+      if (existing) {
+        Alert.alert(
+          'Séance en cours',
+          `"${existing.name}" est déjà active.`,
+          [
+            { text: 'Annuler', style: 'cancel' },
+            {
+              text: 'Reprendre',
+              onPress: () => router.push({ pathname: '/workouts/[workoutId]', params: { workoutId: existing.id } }),
+            },
+          ]
+        );
+        return;
+      }
+      const workoutId = await startWorkoutFromTemplate(templateId);
+      if (workoutId) {
+        router.push({ pathname: '/workouts/[workoutId]', params: { workoutId } });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [router]);
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorView message={error} onRetry={loadData} />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.userInfo}>
+            <View style={[styles.avatar, { backgroundColor: colors.tint }]}>
+              <ThemedText style={styles.avatarInitial}>{(userName || 'A').charAt(0).toUpperCase()}</ThemedText>
+            </View>
+            <View>
+              <ThemedText style={[styles.greeting, { color: colors.icon }]}>Bienvenue,</ThemedText>
+              <ThemedText style={styles.userName}>{userName || 'Athlète'}</ThemedText>
+            </View>
+          </View>
+          <View style={styles.headerRight}>
+            {streak > 0 && (
+              <View style={[styles.streakBadge, { backgroundColor: colors.card }]}>
+                <IconSymbol name="flame.fill" size={14} color={colors.tint} />
+                <ThemedText style={styles.streakText}>{streak}</ThemedText>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.settingsBtn, { backgroundColor: colors.card }]}
+              onPress={() => router.push('/settings' as any)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <IconSymbol name="gear" size={20} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Bannière séance active */}
+        {activeWorkout && !bannerDismissed && (
+          <ActiveWorkoutBanner
+            workoutName={activeWorkout.name}
+            onResume={() =>
+              router.push({ pathname: '/workouts/[workoutId]', params: { workoutId: activeWorkout.id } })
+            }
+            onDismiss={() => setBannerDismissed(true)}
+          />
+        )}
+
+        {/* Activité de la semaine */}
+        <WeeklyActivityWidget />
+
+        {/* Mes routines */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>MES ROUTINES</ThemedText>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/workout' as any)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <ThemedText style={[styles.sectionLink, { color: colors.tint }]}>Gérer</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {templates.length === 0 ? (
+            <TouchableOpacity
+              style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}
+              onPress={() => router.push('/workouts/new-template' as any)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="plus.circle" size={28} color={colors.tint} />
+              <ThemedText style={[styles.emptyText, { color: colors.icon }]}>Créer ma première routine</ThemedText>
+            </TouchableOpacity>
+          ) : (
+            templates.map((tpl) => (
+              <TemplateCard
+                key={tpl.id}
+                tpl={tpl}
+                expanded={expandedId === tpl.id}
+                detail={detailsCache.get(tpl.id) ?? null}
+                colors={colors}
+                onToggle={() => handleToggleExpand(tpl)}
+                onStart={() => handleStartFromTemplate(tpl.id)}
+                onEdit={() => router.push({ pathname: '/workouts/template', params: { templateId: tpl.id } })}
+              />
+            ))
+          )}
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function TemplateCard({
+  tpl, expanded, detail, colors, onToggle, onStart, onEdit,
+}: {
+  tpl: WorkoutTemplateSummary;
+  expanded: boolean;
+  detail: TemplateDetail | null;
+  colors: any;
+  onToggle: () => void;
+  onStart: () => void;
+  onEdit: () => void;
+}) {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(rotateAnim, {
+      toValue: expanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [expanded, rotateAnim]);
+
+  const chevronRotate = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
+
+  return (
+    <View style={[styles.templateCard, { backgroundColor: colors.card }]}>
+      <TouchableOpacity style={styles.templateHeader} onPress={onToggle} activeOpacity={0.7}>
+        <View style={styles.templateInfo}>
+          <ThemedText type="defaultSemiBold" style={styles.templateName}>{tpl.name}</ThemedText>
+          <View style={styles.templateMetaRow}>
+            <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>
+              {tpl.exerciseCount} exercice{tpl.exerciseCount > 1 ? 's' : ''}
+            </ThemedText>
+            {tpl.lastPerformedAt ? (
+              <>
+                <ThemedText style={[styles.templateMetaDot, { color: colors.icon }]}> · </ThemedText>
+                <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>
+                  {formatLastPerformed(tpl.lastPerformedAt)}
+                </ThemedText>
+              </>
+            ) : (
+              <>
+                <ThemedText style={[styles.templateMetaDot, { color: colors.icon }]}> · </ThemedText>
+                <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>Pas encore effectuée</ThemedText>
+              </>
+            )}
+          </View>
+        </View>
+        <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+          <IconSymbol name="chevron.right" size={18} color={colors.icon} />
+        </Animated.View>
+      </TouchableOpacity>
+
+      {expanded && (
+        <View style={[styles.expandedContent, { borderTopColor: colors.background }]}>
+          {detail ? (
+            <>
+              {detail.exercises.map((ex, i) => (
+                <View key={`${i}_${ex.exerciseId}`} style={styles.exerciseRow}>
+                  <ThemedText style={[styles.exerciseIndex, { color: colors.icon }]}>{i + 1}</ThemedText>
+                  <ThemedText style={styles.exerciseName} numberOfLines={1}>{ex.name}</ThemedText>
+                  <ThemedText style={[styles.exerciseConfig, { color: colors.icon }]}>
+                    {ex.sets} × {ex.reps}{ex.weight_kg ? ` — ${ex.weight_kg} kg` : ''}
+                  </ThemedText>
+                </View>
+              ))}
+            </>
+          ) : (
+            <ThemedText style={[styles.templateMeta, { color: colors.icon, padding: 12 }]}>
+              Chargement…
+            </ThemedText>
+          )}
+
+          <View style={styles.expandedActions}>
+            <TouchableOpacity
+              style={[styles.startBtnFull, { backgroundColor: colors.tint }]}
+              onPress={onStart}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.startBtnText}>Démarrer</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editBtn, { borderColor: colors.icon + '40' }]}
+              onPress={onEdit}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={[styles.editBtnText, { color: colors.text }]}>Modifier</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  content: { padding: 20, paddingBottom: 40 },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  userInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarInitial: { fontSize: 18, fontWeight: 'bold', color: '#0F172A' },
+  greeting: { fontSize: 13 },
+  userName: { fontSize: 18, fontWeight: '700' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 },
+  streakText: { fontSize: 14, fontWeight: '600' },
+  settingsBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  section: { marginTop: 4, gap: 10 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  sectionLink: { fontSize: 13, fontWeight: '600' },
+
+  emptyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  emptyText: { fontSize: 14, fontWeight: '500' },
+
+  templateCard: { borderRadius: 12, overflow: 'hidden' },
+  templateHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', padding: 14,
+  },
+  templateInfo: { flex: 1, marginRight: 8 },
+  templateName: { fontSize: 15 },
+  templateMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
+  templateMeta: { fontSize: 13 },
+  templateMetaDot: { fontSize: 13 },
+
+  expandedContent: { borderTopWidth: StyleSheet.hairlineWidth, paddingBottom: 4 },
+  exerciseRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 7, gap: 8,
+  },
+  exerciseIndex: { fontSize: 13, fontWeight: '600', width: 18, textAlign: 'center' },
+  exerciseName: { flex: 1, fontSize: 14 },
+  exerciseConfig: { fontSize: 13 },
+
+  expandedActions: { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 8 },
+  startBtnFull: {
+    flex: 1, height: 44, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  startBtnText: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  editBtn: {
+    height: 44, paddingHorizontal: 16, borderRadius: 10,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+  },
+  editBtnText: { fontSize: 15, fontWeight: '600' },
+});
