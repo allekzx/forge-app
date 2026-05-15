@@ -28,7 +28,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "allowBackup": false
+      "allowBackup": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -52,7 +55,9 @@
       [
         "expo-notifications",
         {
-          "sounds": ["assets/sounds/timer_end.wav"]
+          "sounds": [
+            "assets/sounds/timer_end.wav"
+          ]
         }
       ],
       [
@@ -65,6 +70,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6785a2f0-d982-4f89-98cd-0732cd4a9e06"
+      }
+    },
+    "owner": "allekzxs-organization"
   }
 }

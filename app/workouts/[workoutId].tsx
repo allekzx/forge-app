@@ -49,13 +49,34 @@ type GroupedExercise = {
 
 type PendingSetValue = { weight: string; reps: string };
 
-function buildPendingValues(sets: WorkoutSetRow[], unit: WeightUnit = 'kg'): Map<string, PendingSetValue> {
+function buildPendingValues(
+  sets: WorkoutSetRow[],
+  unit: WeightUnit = 'kg',
+  prevSets?: Map<string, Map<number, LastSetData>>
+): Map<string, PendingSetValue> {
   const map = new Map<string, PendingSetValue>();
   for (const s of sets) {
-    const kgVal = s.actual_weight != null ? s.actual_weight : (s.target_weight ?? null);
+    const prev = prevSets?.get(s.exercise_id)?.get(s.set_index);
+    // Priority: actual (this session) > prev session > template target
+    let kgVal: number | null = null;
+    if (s.actual_weight != null) {
+      kgVal = s.actual_weight;
+    } else if (prev?.weight != null && prev.weight > 0) {
+      kgVal = prev.weight;
+    } else if (s.target_weight != null && s.target_weight > 0) {
+      kgVal = s.target_weight;
+    }
+    let repVal: number | null = null;
+    if (s.actual_reps != null) {
+      repVal = s.actual_reps;
+    } else if (prev?.reps != null) {
+      repVal = prev.reps;
+    } else if (s.target_reps) {
+      repVal = s.target_reps;
+    }
     map.set(s.id, {
       weight: kgVal != null ? kgToDisplay(kgVal, unit) : '',
-      reps: s.actual_reps != null ? String(s.actual_reps) : s.target_reps ? String(s.target_reps) : '',
+      reps: repVal != null ? String(repVal) : '',
     });
   }
   return map;
@@ -160,26 +181,27 @@ export default function WorkoutInProgressScreen() {
             startTimeRef.current = new Date(detail.created_at).getTime();
             setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
           }
-          // Load unit before building pending values so weights display in the right unit
           const unit = await getUserSetting('weight_unit', 'kg');
-          if (!cancelled) {
-            setWeightUnit(unit as WeightUnit);
-            if (detail) {
-              setPendingValues(buildPendingValues(detail.sets, unit as WeightUnit));
-              setNotes(detail.notes ?? '');
-            }
-          }
-          if (detail && !detail.finished_at) {
+          if (!cancelled) setWeightUnit(unit as WeightUnit);
+
+          // Load prev session weights before building pending values so inputs are pre-filled
+          let prevSessionData = new Map<string, Map<number, LastSetData>>();
+          if (!detail.finished_at) {
             const exerciseIds = [...new Set(detail.sets.map(s => s.exercise_id))];
             if (exerciseIds.length) {
-              const prev = await getLastSessionWeightsForExercises(exerciseIds, workoutId);
-              if (!cancelled) setPrevSets(prev);
+              prevSessionData = await getLastSessionWeightsForExercises(exerciseIds, workoutId);
+              if (!cancelled) setPrevSets(prevSessionData);
               const prMap = new Map<string, number | null>();
               for (const exId of exerciseIds) {
                 prMap.set(exId, await getPRForExercise(exId, workoutId));
               }
               if (!cancelled) setExercisePRs(prMap);
             }
+          }
+
+          if (!cancelled) {
+            setPendingValues(buildPendingValues(detail.sets, unit as WeightUnit, prevSessionData));
+            setNotes(detail.notes ?? '');
           }
         } catch (e) {
           console.error('[workoutId] load error:', e);
