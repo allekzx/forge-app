@@ -31,6 +31,7 @@ import {
   getWorkoutSummary,
   getUserSetting,
   initDatabase,
+  removeExerciseFromWorkout,
   updateTemplateFromWorkout,
   updateWorkoutNotes,
   updateWorkoutSet,
@@ -114,7 +115,7 @@ export default function WorkoutInProgressScreen() {
 
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<WorkoutSummaryData | null>(null);
-  const [templateChoiceMade, setTemplateChoiceMade] = useState(false);
+  const [exercisesToRemove, setExercisesToRemove] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState('');
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
@@ -333,8 +334,18 @@ export default function WorkoutInProgressScreen() {
     setSession(prev => prev ? { ...prev, finished_at: new Date().toISOString() } : prev);
     const summary = await getWorkoutSummary(workoutId);
     setSummaryData(summary);
-    setTemplateChoiceMade(false);
+    if (summary?.templateId) {
+      await updateTemplateFromWorkout(workoutId, summary.templateId);
+    }
+    setExercisesToRemove(new Set());
     setShowSummary(true);
+  };
+
+  const handleSummaryDone = async () => {
+    for (const exerciseId of exercisesToRemove) {
+      await removeExerciseFromWorkout(workoutId as string, exerciseId);
+    }
+    router.replace({ pathname: '/(tabs)/workout' });
   };
 
   const handleAddSet = async (exerciseId: string) => {
@@ -857,40 +868,54 @@ export default function WorkoutInProgressScreen() {
               </View>
             )}
 
-            {/* Template update prompt */}
-            {summaryData?.templateId && !templateChoiceMade && (
-              <View style={[styles.templateUpdateCard, { backgroundColor: colors.card }]}>
-                <Text style={[styles.templateUpdateTitle, { color: colors.text }]}>Mettre à jour la routine ?</Text>
-                <Text style={[styles.templateUpdateSub, { color: colors.icon }]}>
-                  Sauvegarder les valeurs d'aujourd'hui comme défauts pour la prochaine fois.
-                </Text>
-                <View style={styles.templateUpdateActions}>
-                  <TouchableOpacity
-                    style={[styles.templateUpdateBtn, { borderColor: colors.icon, borderWidth: 1 }]}
-                    onPress={() => setTemplateChoiceMade(true)}
-                  >
-                    <Text style={[styles.templateUpdateBtnText, { color: colors.text }]}>Ignorer</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.templateUpdateBtn, { backgroundColor: colors.tint }]}
-                    onPress={async () => {
-                      if (summaryData.templateId) {
-                        await updateTemplateFromWorkout(workoutId as string, summaryData.templateId);
-                      }
-                      setTemplateChoiceMade(true);
-                    }}
-                  >
-                    <Text style={[styles.templateUpdateBtnText, { color: '#0F172A' }]}>Mettre à jour</Text>
-                  </TouchableOpacity>
+            {/* Exercices skippés */}
+            {summaryData && (() => {
+              const skipped = summaryData.exercises.filter(ex => ex.completedSets === 0);
+              if (!skipped.length) return null;
+              return (
+                <View style={[styles.skippedCard, { backgroundColor: colors.card }]}>
+                  <Text style={[styles.skippedTitle, { color: colors.text }]}>
+                    {`${skipped.length} exercice${skipped.length > 1 ? 's' : ''} non réalisé${skipped.length > 1 ? 's' : ''}`}
+                  </Text>
+                  <Text style={[styles.skippedSub, { color: colors.icon }]}>
+                    Appuie pour retirer de l'historique
+                  </Text>
+                  {skipped.map(ex => {
+                    const willRemove = exercisesToRemove.has(ex.exerciseId);
+                    return (
+                      <TouchableOpacity
+                        key={ex.exerciseId}
+                        style={styles.skippedRow}
+                        onPress={() => setExercisesToRemove(prev => {
+                          const next = new Set(prev);
+                          willRemove ? next.delete(ex.exerciseId) : next.add(ex.exerciseId);
+                          return next;
+                        })}
+                      >
+                        <Text style={[
+                          styles.skippedExName,
+                          { color: willRemove ? colors.icon : colors.text },
+                          willRemove && { textDecorationLine: 'line-through' as const },
+                        ]}>
+                          {ex.name}
+                        </Text>
+                        <IconSymbol
+                          name={willRemove ? 'xmark.circle.fill' : 'circle'}
+                          size={20}
+                          color={willRemove ? '#FF3B30' : colors.icon}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-              </View>
-            )}
+              );
+            })()}
 
           </ScrollView>
 
           <TouchableOpacity
             style={[styles.summaryDoneButton, { backgroundColor: colors.tint }]}
-            onPress={() => router.replace({ pathname: '/(tabs)/workout' })}
+            onPress={handleSummaryDone}
           >
             <Text style={styles.summaryDoneText}>Terminer</Text>
           </TouchableOpacity>
@@ -1045,12 +1070,11 @@ const styles = StyleSheet.create({
   summaryExMeta: { fontSize: 14 },
   summaryExSets: { fontSize: 14, fontWeight: '600' },
 
-  templateUpdateCard: { borderRadius: 14, padding: 16, gap: 8 },
-  templateUpdateTitle: { fontSize: 15, fontWeight: 'bold' },
-  templateUpdateSub: { fontSize: 14, lineHeight: 20 },
-  templateUpdateActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  templateUpdateBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 10, minHeight: 44 },
-  templateUpdateBtnText: { fontSize: 14, fontWeight: '600' },
+  skippedCard: { borderRadius: 14, padding: 16, gap: 4 },
+  skippedTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 2 },
+  skippedSub: { fontSize: 13, marginBottom: 8 },
+  skippedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, gap: 12 },
+  skippedExName: { flex: 1, fontSize: 14, fontWeight: '500' },
 
   summaryDoneButton: {
     position: 'absolute',

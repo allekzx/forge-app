@@ -1411,6 +1411,18 @@ export const deleteWorkoutSet = async (setId: string): Promise<void> => {
   await database.runAsync('DELETE FROM workout_sets WHERE id = ?', setId);
 };
 
+export const removeExerciseFromWorkout = async (workoutId: string, exerciseId: string): Promise<void> => {
+  const database = await openDatabase();
+  await database.runAsync(
+    'DELETE FROM workout_sets WHERE workout_id = ? AND exercise_id = ?',
+    workoutId, exerciseId
+  );
+  await database.runAsync(
+    'DELETE FROM workout_exercises WHERE workout_id = ? AND exercise_id = ?',
+    workoutId, exerciseId
+  );
+};
+
 export const getActiveWorkout = async (): Promise<{ id: string; name: string } | null> => {
   const database = await openDatabase();
   return await database.getFirstAsync<{ id: string; name: string }>(
