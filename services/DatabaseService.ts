@@ -1381,17 +1381,25 @@ export const addSetToWorkout = async (workoutId: string, exerciseId: string): Pr
     );
   }
 
-  // Find next set index
-  const maxSet = await database.getFirstAsync<{ maxIdx: number | null }>(
-    'SELECT MAX(set_index) as maxIdx FROM workout_sets WHERE workout_id = ? AND exercise_id = ?',
+  // Find next set index + copy values from last set
+  const lastSet = await database.getFirstAsync<{
+    maxIdx: number | null; target_reps: number; target_weight: number;
+    rest_seconds: number; actual_reps: number | null; actual_weight: number | null;
+  }>(
+    `SELECT MAX(set_index) as maxIdx, target_reps, target_weight, rest_seconds, actual_reps, actual_weight
+     FROM workout_sets WHERE workout_id = ? AND exercise_id = ?
+     ORDER BY set_index DESC LIMIT 1`,
     workoutId, exerciseId
   );
-  const newIndex = (maxSet?.maxIdx ?? 0) + 1;
+  const newIndex = (lastSet?.maxIdx ?? 0) + 1;
+  const defaultReps = lastSet?.actual_reps ?? lastSet?.target_reps ?? 8;
+  const defaultWeight = lastSet?.actual_weight ?? lastSet?.target_weight ?? 0;
+  const defaultRest = lastSet?.rest_seconds ?? 90;
   const setId = `${workoutId}_${exerciseId}_${newIndex}_${Date.now()}`;
 
   await database.runAsync(
-    'INSERT INTO workout_sets (id, workout_id, exercise_id, set_index, target_reps, target_weight, rest_seconds) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    setId, workoutId, exerciseId, newIndex, 8, 0, 90
+    'INSERT INTO workout_sets (id, workout_id, exercise_id, set_index, target_reps, target_weight, rest_seconds, set_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    setId, workoutId, exerciseId, newIndex, defaultReps, defaultWeight, defaultRest, 'normal'
   );
 
   const exercise = await database.getFirstAsync<{ name: string; muscle: string; equipment: string }>(
@@ -1400,7 +1408,7 @@ export const addSetToWorkout = async (workoutId: string, exerciseId: string): Pr
 
   return {
     id: setId, workout_id: workoutId, exercise_id: exerciseId,
-    set_index: newIndex, target_reps: 8, target_weight: 0, rest_seconds: 90,
+    set_index: newIndex, target_reps: defaultReps, target_weight: defaultWeight, rest_seconds: defaultRest,
     actual_reps: null, actual_weight: null, completed_at: null, set_type: 'normal',
     name: exercise?.name ?? '', muscle: exercise?.muscle ?? '', equipment: exercise?.equipment ?? '',
   };

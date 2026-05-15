@@ -356,8 +356,8 @@ export default function WorkoutInProgressScreen() {
     setPendingValues(prev => {
       const next = new Map(prev);
       next.set(newSet.id, {
-        weight: newSet.target_weight ? String(newSet.target_weight) : '',
-        reps: newSet.target_reps ? String(newSet.target_reps) : '',
+        weight: newSet.target_weight > 0 ? kgToDisplay(newSet.target_weight, weightUnit) : '',
+        reps: newSet.target_reps > 0 ? String(newSet.target_reps) : '',
       });
       return next;
     });
