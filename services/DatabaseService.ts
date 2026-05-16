@@ -496,9 +496,9 @@ const _doInit = async () => {
     await seedDefaultTemplates(database);
   }
 
-  // Seed exercises if empty or outdated (< 1500 = old dataset, new one has 1592+)
-  const result = await database.getFirstAsync<{ count: number }>('SELECT count(*) as count FROM exercises');
-  if (result && result.count < 1500) {
+  // Seed exercises si vide, trop peu (< 900) OU trop (> 950 = ancien dataset non filtré avec 1592 entrées)
+  const result = await database.getFirstAsync<{ count: number }>('SELECT count(*) as count FROM exercises WHERE is_custom = 0 OR is_custom IS NULL');
+  if (result && (result.count < 900 || result.count > 950)) {
     await database.execAsync('DELETE FROM exercises WHERE is_custom IS NULL OR is_custom = 0');
     // Batch insert (50 rows per execAsync) — far faster than 1500+ sequential runAsync on WASM
     const esc = (s: string | null | undefined): string =>
@@ -717,18 +717,17 @@ export const getWeeklyStats = async (): Promise<WeeklyStats> => {
        COALESCE(SUM(CASE WHEN ws.completed_at IS NOT NULL
                     THEN ws.actual_weight * ws.actual_reps ELSE 0 END), 0) AS totalVolume,
        COUNT(DISTINCT w.id) AS workoutCount,
-       COALESCE(SUM(CASE WHEN w.finished_at IS NOT NULL
-                    THEN strftime('%s', w.finished_at) - strftime('%s', w.created_at)
-                    ELSE 0 END), 0) AS totalDurationSeconds
+       COALESCE(SUM(strftime('%s', w.finished_at) - strftime('%s', w.created_at)), 0) AS totalDurationSeconds
      FROM workouts w
      LEFT JOIN workout_sets ws ON ws.workout_id = w.id
-     WHERE DATE(w.created_at) >= ?`,
+     WHERE DATE(w.created_at) >= ?
+       AND w.finished_at IS NOT NULL`,
     mondayStr
   );
 
-  // Jours actifs — requête séparée avec paramètre lié
+  // Jours actifs — uniquement les séances terminées
   const activeDayRows = await database.getAllAsync<{ date: string }>(
-    `SELECT DISTINCT DATE(created_at) AS date FROM workouts WHERE DATE(created_at) >= ?`,
+    `SELECT DISTINCT DATE(created_at) AS date FROM workouts WHERE DATE(created_at) >= ? AND finished_at IS NOT NULL`,
     mondayStr
   );
   const activeDates = new Set(activeDayRows.map(r => r.date));
@@ -907,7 +906,7 @@ export const getTotalSetsAllTime = async (): Promise<number> => {
 export const getWorkoutStreak = async (): Promise<number> => {
   const database = await openDatabase();
   const workouts = await database.getAllAsync<{ created_at: string }>(
-    `SELECT created_at FROM workouts ORDER BY created_at DESC`
+    `SELECT created_at FROM workouts WHERE finished_at IS NOT NULL ORDER BY created_at DESC`
   );
 
   if (!workouts.length) return 0;
@@ -989,6 +988,7 @@ export type WorkoutTemplateExercise = {
   name: string;
   muscle: string;
   equipment: string;
+  image: string | null;
 };
 
 export type WorkoutTemplateDetail = {
@@ -1133,7 +1133,7 @@ export const getWorkoutTemplateDetail = async (templateId: string): Promise<Work
   const exercises = await database.getAllAsync<WorkoutTemplateExercise>(
     `SELECT
        wte.id, wte.template_id, wte.exercise_id, wte.sets, wte.reps,
-       wte.rest_seconds, wte.order_index, e.name, e.muscle, e.equipment
+       wte.rest_seconds, wte.order_index, e.name, e.muscle, e.equipment, e.image
      FROM workout_template_exercises wte
      JOIN exercises e ON e.id = wte.exercise_id
      WHERE wte.template_id = ?

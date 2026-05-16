@@ -37,6 +37,17 @@ import {
   updateWorkoutTemplateName,
 } from '@/services/DatabaseService';
 
+function muscleColor(muscle: string): string {
+  const m = (muscle ?? '').toLowerCase();
+  if (m.includes('chest')) return '#EF4444';
+  if (m.includes('lat') || m.includes('back') || m.includes('trap')) return '#3B82F6';
+  if (m.includes('quad') || m.includes('ham') || m.includes('glut') || m.includes('calf') || m.includes('leg')) return '#8B5CF6';
+  if (m.includes('bicep') || m.includes('tricep') || m.includes('forearm')) return '#F59E0B';
+  if (m.includes('shoulder') || m.includes('delt')) return '#10B981';
+  if (m.includes('ab') || m.includes('core')) return '#06B6D4';
+  return '#6366F1';
+}
+
 const SET_TYPE_COLORS: Record<string, string> = {
   normal: '#22C55E',
   warmup: '#F59E0B',
@@ -337,10 +348,15 @@ function ExerciseCard({
 }: ExerciseCardProps) {
   // Compute available width for inputs: screen - list padding (32) - card padding (28) - badge (44) - delete (36) - gaps (3×8=24)
   const inputWidth = Math.max(48, Math.floor((screenWidth - 32 - 28 - 44 - 36 - 24) / 2));
+  const accent = muscleColor(exercise.muscle);
   return (
     <View style={[s.card, { backgroundColor: colors.card }]}>
       {/* Card header */}
       <View style={s.cardHeader}>
+        {/* Badge muscle coloré */}
+        <View style={[s.exThumb, s.exThumbFallback, { backgroundColor: accent + '20' }]}>
+          <IconSymbol name="dumbbell.fill" size={20} color={accent} />
+        </View>
         <View style={s.cardHeaderLeft}>
           <Text style={[s.exerciseName, { color: colors.text }]} numberOfLines={1}>
             {exercise.name}
@@ -574,7 +590,18 @@ const s = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
     marginBottom: 12,
+  },
+  exThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    flexShrink: 0,
+  },
+  exThumbFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardHeaderLeft: { flex: 1 },
   exerciseName: { fontSize: 15, fontWeight: '700', marginBottom: 2 },

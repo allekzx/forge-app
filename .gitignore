@@ -37,3 +37,4 @@ npm-debug.log*
 # Temp / scripts
 generate-icons.js
 templates/
+scripts/.translate-progress.json

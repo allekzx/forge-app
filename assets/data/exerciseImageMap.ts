@@ -460,6 +460,7 @@ const exerciseImageMap: Record<string, ImageSourcePropType> = {
   "Machine_Bicep_Curl.jpg": require("@/assets/exercise_images/Machine_Bicep_Curl.jpg"),
   "Machine_Preacher_Curls.jpg": require("@/assets/exercise_images/Machine_Preacher_Curls.jpg"),
   "Machine_Shoulder_(Military)_Press.jpg": require("@/assets/exercise_images/Machine_Shoulder_(Military)_Press.jpg"),
+  "Machine_Shoulder_Military_Press.jpg": require("@/assets/exercise_images/Machine_Shoulder_Military_Press.jpg"),
   "Machine_Triceps_Extension.jpg": require("@/assets/exercise_images/Machine_Triceps_Extension.jpg"),
   "Medicine_Ball_Chest_Pass.jpg": require("@/assets/exercise_images/Medicine_Ball_Chest_Pass.jpg"),
   "Medicine_Ball_Full_Twist.jpg": require("@/assets/exercise_images/Medicine_Ball_Full_Twist.jpg"),

@@ -1,4 +1,3 @@
-import exerciseImageMap from '@/assets/data/exerciseImageMap';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -17,7 +16,6 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,6 +25,17 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+function muscleAccentColor(muscle: string): string {
+  const m = (muscle ?? '').toLowerCase();
+  if (m.includes('chest')) return '#EF4444';
+  if (m.includes('lat') || m.includes('back') || m.includes('trap')) return '#3B82F6';
+  if (m.includes('quad') || m.includes('ham') || m.includes('glut') || m.includes('calf') || m.includes('leg')) return '#8B5CF6';
+  if (m.includes('bicep') || m.includes('tricep') || m.includes('forearm')) return '#F59E0B';
+  if (m.includes('shoulder') || m.includes('delt')) return '#10B981';
+  if (m.includes('ab') || m.includes('core')) return '#06B6D4';
+  return '#6366F1';
+}
 
 const P_W = 320;
 const P_H = 100;
@@ -115,11 +124,21 @@ export default function ExerciseDetailScreen() {
     router.back();
   };
 
-  const imgSource = exercise?.image ? exerciseImageMap[exercise.image] : undefined;
-
-  const instructions = exercise?.instructions
+  const rawInstructions = exercise?.instructions
     ? exercise.instructions.split('\n').filter(l => l.trim().length > 0)
     : [];
+
+  // Avoid showing description when it's identical to or a prefix of the first instruction step
+  const firstStep = rawInstructions[0]?.trim() ?? '';
+  const descNorm = exercise?.description?.trim() ?? '';
+  const descIsDuplicate =
+    !descNorm ||
+    firstStep === descNorm ||
+    firstStep.startsWith(descNorm) ||
+    descNorm.startsWith(firstStep);
+
+  const descriptionText = descIsDuplicate ? null : descNorm || null;
+  const instructions = rawInstructions;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -139,27 +158,26 @@ export default function ExerciseDetailScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-          {/* Image */}
-          {imgSource ? (
-            <Image source={imgSource} style={styles.heroImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.heroImage, styles.heroFallback, { backgroundColor: colors.card }]}>
-              <IconSymbol name="dumbbell.fill" size={48} color={colors.icon} />
-            </View>
-          )}
-
-          {/* Name + badges */}
-          <View style={styles.titleBlock}>
-            <Text style={[styles.name, { color: colors.text }]}>{exercise.name}</Text>
-            <View style={styles.badges}>
-              <View style={[styles.badge, { backgroundColor: colors.card }]}>
-                <Text style={[styles.badgeText, { color: colors.tint }]}>{exercise.muscle}</Text>
+          {/* Hero header — colored by muscle group */}
+          {(() => {
+            const accentColor = muscleAccentColor(exercise.muscle);
+            return (
+              <View style={[styles.heroHeader, { backgroundColor: accentColor + '18' }]}>
+                <View style={[styles.heroIconWrap, { backgroundColor: accentColor + '25' }]}>
+                  <IconSymbol name="dumbbell.fill" size={40} color={accentColor} />
+                </View>
+                <Text style={[styles.name, { color: colors.text }]}>{exercise.name}</Text>
+                <View style={styles.badges}>
+                  <View style={[styles.badge, { backgroundColor: accentColor + '20' }]}>
+                    <Text style={[styles.badgeText, { color: accentColor }]}>{exercise.muscle}</Text>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.badgeText, { color: colors.icon }]}>{exercise.equipment}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={[styles.badge, { backgroundColor: colors.card }]}>
-                <Text style={[styles.badgeText, { color: colors.icon }]}>{exercise.equipment}</Text>
-              </View>
-            </View>
-          </View>
+            );
+          })()}
 
           {/* PR */}
           <View style={[styles.prCard, { backgroundColor: colors.card }]}>
@@ -177,11 +195,11 @@ export default function ExerciseDetailScreen() {
             )}
           </View>
 
-          {/* Description */}
-          {exercise.description ? (
+          {/* Description — omise si elle duplique les instructions */}
+          {descriptionText ? (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.icon }]}>Description</Text>
-              <Text style={[styles.sectionBody, { color: colors.text }]}>{exercise.description}</Text>
+              <Text style={[styles.sectionBody, { color: colors.text }]}>{descriptionText}</Text>
             </View>
           ) : null}
 
@@ -244,26 +262,27 @@ const styles = StyleSheet.create({
 
   content: { paddingBottom: 24 },
 
-  heroImage: {
+  heroHeader: {
     width: '100%',
-    height: 220,
-    borderRadius: 0,
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 12,
   },
-  heroFallback: {
+  heroIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  titleBlock: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 10,
+    marginBottom: 4,
   },
   name: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    lineHeight: 30,
+    lineHeight: 28,
+    textAlign: 'center',
   },
   badges: {
     flexDirection: 'row',
