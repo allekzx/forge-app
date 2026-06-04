@@ -50,7 +50,7 @@ export function WeeklyActivityWidget() {
     <View style={[styles.container, { backgroundColor: colors.card }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Activité de la semaine</Text>
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: colors.tint + '20' }]}>
           <Text style={[styles.badgeText, { color: colors.tint }]}>{activeCount}/7 jours</Text>
         </View>
       </View>
@@ -122,7 +122,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   badge: {
-    backgroundColor: 'rgba(0, 242, 96, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,

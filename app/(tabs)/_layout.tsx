@@ -41,8 +41,8 @@ export default function TabLayout() {
           title: 'Séance',
           tabBarButton: (props) => (
             <TouchableOpacity
-              onPress={props.onPress}
-              onLongPress={props.onLongPress}
+              onPress={props.onPress ?? undefined}
+              onLongPress={props.onLongPress ?? undefined}
               style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               activeOpacity={0.8}
               accessibilityRole="button"

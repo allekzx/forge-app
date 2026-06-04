@@ -33,6 +33,7 @@ function AppShell() {
         <Stack.Screen name="exercises/[exerciseId]" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="add-exercise" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="program-select" options={{ headerShown: false }} />
         <Stack.Screen name="history/[workoutId]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>

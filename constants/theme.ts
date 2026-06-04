@@ -64,7 +64,7 @@ export const SemanticColors = {
 
 export const AccentPalettes = {
   orange: { tint: '#F97316', tabIconSelected: '#F97316' },
-  green:  { tint: '#00F260', tabIconSelected: '#00F260' },
+  green:  { tint: '#22C55E', tabIconSelected: '#22C55E' },
   blue:   { tint: '#3B82F6', tabIconSelected: '#3B82F6' },
   purple: { tint: '#8B5CF6', tabIconSelected: '#8B5CF6' },
 } as const;

@@ -249,8 +249,6 @@ export default function StatsScreen() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
-
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const handleLogWeight = async () => {

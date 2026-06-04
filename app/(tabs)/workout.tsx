@@ -30,33 +30,28 @@ export default function WorkoutScreen() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const loadData = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await initDatabase();
+      const templatesData = await getWorkoutTemplates();
+      const aw = await getActiveWorkout();
+      setTemplates(templatesData);
+      setActiveWorkout(aw);
+    } catch (e) {
+      console.error('[workout] load error:', e);
+      setError('Impossible de charger les routines.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Reload templates + active workout on every focus (handles create/edit/delete)
-  // Sequential (not Promise.all) to avoid concurrent SQLite WASM statements
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      const load = async () => {
-        setError(null);
-        try {
-          await initDatabase();
-          const templatesData = await getWorkoutTemplates();
-          const aw = await getActiveWorkout();
-          if (!cancelled) {
-            setTemplates(templatesData);
-            setActiveWorkout(aw);
-            setLoading(false);
-          }
-        } catch (e) {
-          console.error('[workout] load error:', e);
-          if (!cancelled) {
-            setError('Impossible de charger les routines.');
-            setLoading(false);
-          }
-        }
-      };
-      load();
-      return () => { cancelled = true; };
-    }, [])
+      loadData();
+    }, [loadData])
   );
 
   const handleMenuStart = async (item: WorkoutTemplateSummary) => {
@@ -132,7 +127,7 @@ export default function WorkoutScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {error ? (
-        <ErrorView message={error} onRetry={() => { setError(null); setLoading(true); }} />
+        <ErrorView message={error} onRetry={loadData} />
       ) : (
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="title" style={styles.title}>Séances</ThemedText>

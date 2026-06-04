@@ -33,6 +33,7 @@ import {
   initDatabase,
   removeExerciseFromWorkout,
   updateTemplateFromWorkout,
+  updateWorkoutExerciseOrder,
   updateWorkoutNotes,
   updateWorkoutSet,
 } from '@/services/DatabaseService';
@@ -122,6 +123,8 @@ export default function WorkoutInProgressScreen() {
   const [exercisePRs, setExercisePRs] = useState<Map<string, number | null>>(new Map());
   const [newPRSetId, setNewPRSetId] = useState<string | null>(null);
   const [liveSetTypePicker, setLiveSetTypePicker] = useState<{ setId: string; currentType: string } | null>(null);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [exerciseOrder, setExerciseOrder] = useState<string[] | null>(null);
 
   // Intercepte le retour arrière pour protéger la séance en cours
   useEffect(() => {
@@ -230,8 +233,13 @@ export default function WorkoutInProgressScreen() {
       }
       map.get(s.exercise_id)!.sets.push(s);
     }
-    return Array.from(map.values());
-  }, [session]);
+    const items = Array.from(map.values());
+    if (exerciseOrder) {
+      const orderMap = new Map(exerciseOrder.map((id, i) => [id, i]));
+      items.sort((a, b) => (orderMap.get(a.exerciseId) ?? 999) - (orderMap.get(b.exerciseId) ?? 999));
+    }
+    return items;
+  }, [session, exerciseOrder]);
 
   const completedSets = session?.sets.filter(s => !!s.completed_at).length ?? 0;
   const totalSets = session?.sets.length ?? 0;
@@ -373,11 +381,40 @@ export default function WorkoutInProgressScreen() {
     );
   };
 
-  const handleRestFinish = () => setActiveRest(null);
-  const handleRestSkip = () => setActiveRest(null);
-  const handleRestAdjust = (newTotal: number) => {
-    if (!activeRest) return;
-    setRestOverrides(prev => new Map(prev).set(activeRest.exerciseId, newTotal));
+  const handleRestFinish = useCallback(() => setActiveRest(null), []);
+  const handleRestSkip  = useCallback(() => setActiveRest(null), []);
+  const handleRestAdjust = useCallback((newTotal: number) => {
+    setActiveRest(prev => {
+      if (prev) setRestOverrides(r => new Map(r).set(prev.exerciseId, newTotal));
+      return prev;
+    });
+  }, []);
+
+  const enterReorderMode = () => {
+    setExerciseOrder(grouped.map(g => g.exerciseId));
+    setReorderMode(true);
+  };
+
+  const exitReorderMode = async () => {
+    if (exerciseOrder && workoutId && typeof workoutId === 'string') {
+      await updateWorkoutExerciseOrder(workoutId, exerciseOrder);
+    }
+    setReorderMode(false);
+  };
+
+  const handleMoveExercise = (exerciseId: string, direction: 'up' | 'down') => {
+    setExerciseOrder(prev => {
+      if (!prev) return prev;
+      const idx = prev.indexOf(exerciseId);
+      if (idx === -1) return prev;
+      const next = [...prev];
+      if (direction === 'up' && idx > 0) {
+        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      } else if (direction === 'down' && idx < next.length - 1) {
+        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+      }
+      return next;
+    });
   };
 
   const confirmRestHeaderEdit = async (exerciseId: string) => {
@@ -404,24 +441,41 @@ export default function WorkoutInProgressScreen() {
       <ThemedView style={styles.inner}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <IconSymbol name="chevron.left" size={24} color={colors.text} />
-          </TouchableOpacity>
+          {reorderMode ? (
+            <TouchableOpacity onPress={exitReorderMode} style={styles.backBtn}>
+              <Text style={[styles.reorderDoneText, { color: colors.tint }]}>Terminé</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <IconSymbol name="chevron.left" size={24} color={colors.text} />
+            </TouchableOpacity>
+          )}
           <View style={styles.headerCenter}>
             <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>
-              {session?.name ?? 'Séance'}
+              {reorderMode ? 'Réorganiser' : (session?.name ?? 'Séance')}
             </ThemedText>
-            {!isFinished && (
+            {!isFinished && !reorderMode && (
               <Text style={[styles.timerText, { color: colors.tint }]}>
                 {formatDuration(elapsedSeconds)}
               </Text>
             )}
+            {reorderMode && (
+              <Text style={[styles.timerText, { color: colors.icon }]}>Glisse ↑↓ pour réordonner</Text>
+            )}
           </View>
-          <View style={styles.progressPill}>
-            <Text style={[styles.progressText, { color: colors.icon }]}>
-              {completedSets}/{totalSets}
-            </Text>
-          </View>
+          {!isFinished && !reorderMode && grouped.length >= 2 ? (
+            <TouchableOpacity onPress={enterReorderMode} style={styles.reorderBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <IconSymbol name="list.bullet" size={20} color={colors.icon} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.progressPill}>
+              {!reorderMode && (
+                <Text style={[styles.progressText, { color: colors.icon }]}>
+                  {completedSets}/{totalSets}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
 
         {loading && (
@@ -511,8 +565,15 @@ export default function WorkoutInProgressScreen() {
                   </View>
                 }
                 renderItem={({ item }) => (
-                  <View style={[styles.exerciseCard, { backgroundColor: colors.card }]}>
+                  <View style={[
+                    styles.exerciseCard,
+                    { backgroundColor: colors.card },
+                    reorderMode && { borderWidth: 1, borderColor: colors.tint + '40' },
+                  ]}>
                     <View style={styles.exerciseCardHeader}>
+                      {reorderMode && (
+                        <IconSymbol name="line.3.horizontal" size={18} color={colors.icon} style={{ marginRight: 8, opacity: 0.5 }} />
+                      )}
                       <View style={styles.exerciseTitleGroup}>
                         <ThemedText type="defaultSemiBold" style={styles.exerciseName}>
                           {item.name}
@@ -521,7 +582,24 @@ export default function WorkoutInProgressScreen() {
                           {`${translateMuscle(item.muscle)} · ${translateEquipment(item.equipment)}`}
                         </ThemedText>
                       </View>
-                      {!isFinished && (
+                      {reorderMode ? (
+                        <View style={styles.reorderArrows}>
+                          <TouchableOpacity
+                            style={[styles.reorderArrowBtn, { backgroundColor: colors.background }]}
+                            onPress={() => handleMoveExercise(item.exerciseId, 'up')}
+                            disabled={grouped.indexOf(item) === 0}
+                          >
+                            <IconSymbol name="chevron.up" size={16} color={grouped.indexOf(item) === 0 ? colors.icon + '40' : colors.text} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.reorderArrowBtn, { backgroundColor: colors.background }]}
+                            onPress={() => handleMoveExercise(item.exerciseId, 'down')}
+                            disabled={grouped.indexOf(item) === grouped.length - 1}
+                          >
+                            <IconSymbol name="chevron.down" size={16} color={grouped.indexOf(item) === grouped.length - 1 ? colors.icon + '40' : colors.text} />
+                          </TouchableOpacity>
+                        </View>
+                      ) : !isFinished && (
                         <TouchableOpacity
                           style={styles.restHeaderRow}
                           onPress={() => {
@@ -551,7 +629,16 @@ export default function WorkoutInProgressScreen() {
                       )}
                     </View>
 
-                    {/* Set header */}
+                    {/* Set summary in reorder mode — no interaction */}
+                    {reorderMode && (
+                      <Text style={[styles.reorderSetSummary, { color: colors.icon }]}>
+                        {item.sets.length} set{item.sets.length > 1 ? 's' : ''}
+                        {' · '}{item.sets.filter(s => s.completed_at).length} complété{item.sets.filter(s => s.completed_at).length > 1 ? 's' : ''}
+                      </Text>
+                    )}
+
+                    {/* Sets — masqués en mode réorganisation */}
+                    {!reorderMode && <>
                     <View style={styles.setHeaderRow}>
                       <Text style={[styles.setHeaderCell, { color: colors.icon, width: 44 }]}>SET</Text>
                       <Text style={[styles.setHeaderCell, { color: colors.icon, flex: 1 }]}>{`POIDS (${weightUnit})`}</Text>
@@ -716,12 +803,13 @@ export default function WorkoutInProgressScreen() {
                         <Text style={[styles.addSetText, { color: colors.tint }]}>+ Set</Text>
                       </TouchableOpacity>
                     )}
+                    </>}
                   </View>
                 )}
               />
             )}
 
-            {!isFinished && (
+            {!isFinished && !reorderMode && (
               <TouchableOpacity
                 style={[styles.finishButton, { backgroundColor: colors.tint }]}
                 onPress={handleFinish}
@@ -739,7 +827,7 @@ export default function WorkoutInProgressScreen() {
             )}
 
             {/* Barre d'onglets compacte — accessible même en fullScreenModal */}
-            {!isFinished && (
+            {!isFinished && !reorderMode && (
               <View style={[styles.miniTabBar, { backgroundColor: colors.card }]}>
                 {(
                   [
@@ -1114,5 +1202,32 @@ const styles = StyleSheet.create({
   miniTabLabel: {
     fontSize: 9,
     fontWeight: '500',
+  },
+
+  reorderBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderDoneText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  reorderArrows: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  reorderArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderSetSummary: {
+    fontSize: 13,
+    marginBottom: 8,
+    paddingHorizontal: 2,
   },
 });

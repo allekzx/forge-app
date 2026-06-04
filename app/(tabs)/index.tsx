@@ -6,19 +6,27 @@ import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
 import { ErrorView } from '@/components/shared/ErrorView';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { WeeklyActivityWidget } from '@/components/WeeklyActivityWidget';
+import { WeekProgramWidget } from '@/components/WeekProgramWidget';
 import { useColors } from '@/hooks/use-colors';
 import {
   TemplateDetail,
+  WeeklyStats,
   WorkoutTemplateSummary,
   getActiveWorkout,
   getTemplateWithExercises,
   getUserSetting,
+  getWeeklyStats,
   getWorkoutStreak,
   getWorkoutTemplates,
   initDatabase,
   startWorkoutFromTemplate,
 } from '@/services/DatabaseService';
+import {
+  getActiveProgram,
+  getCustomSchedule,
+  saveCustomSchedule,
+} from '@/services/ProgramService';
+import { Program, ProgramDay } from '@/constants/programs';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 function formatLastPerformed(isoDate: string): string {
@@ -43,19 +51,30 @@ export default function HomeScreen() {
   const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [weekStats, setWeekStats] = useState<WeeklyStats | null>(null);
+  const [activeProgram, setActiveProgram] = useState<Program | null>(null);
+  const [activeSchedule, setActiveSchedule] = useState<(ProgramDay | null)[]>(Array(7).fill(null));
 
   const loadData = useCallback(async () => {
     setError(null);
     try {
       await initDatabase();
-      const streakData = await getWorkoutStreak();
-      const templatesData = await getWorkoutTemplates();
-      const nameData = await getUserSetting('user_name', '');
-      const activeData = await getActiveWorkout();
+      const [streakData, templatesData, nameData, activeData, programData, statsData] = await Promise.all([
+        getWorkoutStreak(),
+        getWorkoutTemplates(),
+        getUserSetting('user_name', ''),
+        getActiveWorkout(),
+        getActiveProgram(),
+        getWeeklyStats(),
+      ]);
+      const customSchedule = programData ? await getCustomSchedule(programData.id) : null;
       setStreak(streakData);
       setTemplates(templatesData);
       setUserName(nameData);
       setActiveWorkout(activeData);
+      setWeekStats(statsData);
+      setActiveProgram(programData);
+      setActiveSchedule(customSchedule ?? programData?.weekSchedule ?? Array(7).fill(null));
       setBannerDismissed(false);
     } catch (e) {
       console.error('[home] loadData error:', e);
@@ -102,6 +121,42 @@ export default function HomeScreen() {
       console.error(e);
     }
   }, [router]);
+
+  const handleScheduleChange = useCallback(async (newSchedule: (ProgramDay | null)[]) => {
+    if (!activeProgram) return;
+    setActiveSchedule(newSchedule);
+    await saveCustomSchedule(activeProgram.id, newSchedule);
+  }, [activeProgram]);
+
+  // When a program is active: show only its routines with program labels, ordered from today
+  const { orderedTemplates, programLabels } = (() => {
+    const fallback = { orderedTemplates: templates, programLabels: new Map<string, string>() };
+    if (!activeProgram) return fallback;
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    const seen = new Set<string>();
+    const programDays: ProgramDay[] = [];
+    for (let i = 0; i < 7; i++) {
+      const day = activeSchedule[(todayIdx + i) % 7];
+      if (day && !seen.has(day.templateId)) {
+        seen.add(day.templateId);
+        programDays.push(day);
+      }
+    }
+    const resolved: { tpl: WorkoutTemplateSummary; label: string }[] = [];
+    for (const day of programDays) {
+      const tpl = templates.find(t => t.id === day.templateId) ??
+                  templates.find(t => t.name === day.label) ??
+                  templates.find(t => day.label.toLowerCase().startsWith(t.name.toLowerCase()));
+      if (tpl && !resolved.find(r => r.tpl.id === tpl.id)) {
+        resolved.push({ tpl, label: day.label });
+      }
+    }
+    if (resolved.length === 0) return fallback;
+    return {
+      orderedTemplates: resolved.map(r => r.tpl),
+      programLabels: new Map(resolved.map(r => [r.tpl.id, r.label])),
+    };
+  })();
 
   if (error) {
     return (
@@ -155,8 +210,16 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Activité de la semaine */}
-        <WeeklyActivityWidget />
+        {/* Semaine + programme */}
+        <WeekProgramWidget
+          stats={weekStats}
+          program={activeProgram}
+          schedule={activeSchedule}
+          templates={templates}
+          onOpenSelect={() => router.push('/program-select' as any)}
+          onStartTemplate={handleStartFromTemplate}
+          onScheduleChange={handleScheduleChange}
+        />
 
         {/* Mes routines */}
         <View style={styles.section}>
@@ -170,7 +233,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {templates.length === 0 ? (
+          {orderedTemplates.length === 0 ? (
             <TouchableOpacity
               style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.tint + '40' }]}
               onPress={() => router.push('/workouts/new-template' as any)}
@@ -180,10 +243,11 @@ export default function HomeScreen() {
               <ThemedText style={[styles.emptyText, { color: colors.icon }]}>Créer ma première routine</ThemedText>
             </TouchableOpacity>
           ) : (
-            templates.map((tpl) => (
+            orderedTemplates.map((tpl) => (
               <TemplateCard
                 key={tpl.id}
                 tpl={tpl}
+                displayName={programLabels.get(tpl.id) ?? tpl.name}
                 expanded={expandedId === tpl.id}
                 detail={detailsCache.get(tpl.id) ?? null}
                 colors={colors}
@@ -201,9 +265,10 @@ export default function HomeScreen() {
 }
 
 function TemplateCard({
-  tpl, expanded, detail, colors, onToggle, onStart, onEdit,
+  tpl, displayName, expanded, detail, colors, onToggle, onStart, onEdit,
 }: {
   tpl: WorkoutTemplateSummary;
+  displayName: string;
   expanded: boolean;
   detail: TemplateDetail | null;
   colors: any;
@@ -227,7 +292,7 @@ function TemplateCard({
     <View style={[styles.templateCard, { backgroundColor: colors.card }]}>
       <TouchableOpacity style={styles.templateHeader} onPress={onToggle} activeOpacity={0.7}>
         <View style={styles.templateInfo}>
-          <ThemedText type="defaultSemiBold" style={styles.templateName}>{tpl.name}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.templateName}>{displayName}</ThemedText>
           <View style={styles.templateMetaRow}>
             <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>
               {tpl.exerciseCount} exercice{tpl.exerciseCount > 1 ? 's' : ''}

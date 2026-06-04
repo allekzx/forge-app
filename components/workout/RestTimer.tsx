@@ -36,6 +36,11 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
   const finishedRef = useRef(false);
   const notifIdRef = useRef<string | null>(null);
 
+  // Keep a stable ref to onFinish so the countdown effect doesn't depend on it
+  // (avoids resetting the timeout every time the parent re-renders)
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+
   // React Native built-in Animated (web-compatible, no reanimated)
   const barProgress = useRef(new Animated.Value(1)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -93,13 +98,13 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
       if (!finishedRef.current) {
         finishedRef.current = true;
         Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        onFinish();
+        onFinishRef.current();
       }
       return;
     }
     const id = setTimeout(() => setRemaining(prev => Math.max(prev - 1, 0)), 1000);
     return () => clearTimeout(id);
-  }, [remaining, onFinish]);
+  }, [remaining]);
 
   const handleAdjust = (delta: number) => {
     const newRemaining = Math.max(5, remaining + delta);

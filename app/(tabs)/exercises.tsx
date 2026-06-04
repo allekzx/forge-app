@@ -162,7 +162,7 @@ export default function ExerciseLibraryScreen() {
         const workoutId = await createWorkoutWithExercises(selectedExercises);
         setSelectedExercises([]);
         if (workoutId) {
-          router.push('/(tabs)/workout');
+          router.push({ pathname: '/workouts/[workoutId]', params: { workoutId } });
         }
       }
     } catch (e) {
