@@ -93,7 +93,7 @@ export default function ExerciseLibraryScreen() {
       } catch (e) {
         console.error("Failed to load exercises", e);
         setExercises(initialExercises);
-        setLoadError("Impossible de charger la base locale. Les exercices affichés sont en lecture seule.");
+        setLoadError("Certains exercices proviennent du catalogue hors-ligne. Tes exercices personnalisés ne sont peut-être pas visibles.");
       }
     };
     loadData();

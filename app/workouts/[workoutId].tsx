@@ -447,7 +447,7 @@ export default function WorkoutInProgressScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-              <IconSymbol name="chevron.left" size={24} color={colors.text} />
+              <IconSymbol name="chevron.down" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
           <View style={styles.headerCenter}>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, AppState, Easing, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -35,6 +35,13 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
 
   const finishedRef = useRef(false);
   const notifIdRef = useRef<string | null>(null);
+  // Quand le timer finit naturellement, on laisse la notification se déclencher pour jouer le son
+  const cancelOnUnmountRef = useRef(true);
+
+  // Horodatage absolu de fin : permet de recalculer le temps restant après une mise en
+  // veille du téléphone, là où un simple décompte par setTimeout/setInterval se gèlerait.
+  const endTimeRef = useRef(Date.now() + initialDuration * 1000);
+  const totalRef = useRef(initialDuration);
 
   // Keep a stable ref to onFinish so the countdown effect doesn't depend on it
   // (avoids resetting the timeout every time the parent re-renders)
@@ -65,6 +72,7 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
           type: Notifications!.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: Math.max(1, Math.round(seconds)),
           repeats: false,
+          channelId: 'rest-timer',
         },
       });
       if (id) notifIdRef.current = id;
@@ -83,13 +91,38 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
     animationRef.current.start();
   };
 
+  // Recalcule le temps restant à partir de l'horodatage absolu de fin, et resynchronise
+  // la barre de progression. Utilisé au tick normal et au retour au premier plan.
+  const syncFromEndTime = () => {
+    const next = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000));
+    setRemaining(next);
+    if (next > 0) {
+      barProgress.setValue(next / totalRef.current);
+      startAnimation(next);
+    } else {
+      animationRef.current?.stop();
+      barProgress.setValue(0);
+    }
+    return next;
+  };
+
   useEffect(() => {
     startAnimation(initialDuration, true);
     scheduleNotif(initialDuration);
     return () => {
       animationRef.current?.stop();
-      cancelNotif();
+      if (cancelOnUnmountRef.current) cancelNotif();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recale le chrono quand l'app revient au premier plan (écran verrouillé pendant le repos) :
+  // les timers JS sont gelés en arrière-plan, donc `remaining` peut être obsolète.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') syncFromEndTime();
+    });
+    return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -97,18 +130,23 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
     if (remaining <= 0) {
       if (!finishedRef.current) {
         finishedRef.current = true;
+        cancelOnUnmountRef.current = false; // laisser la notification sonner
         Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onFinishRef.current();
       }
       return;
     }
-    const id = setTimeout(() => setRemaining(prev => Math.max(prev - 1, 0)), 1000);
+    const id = setTimeout(() => {
+      setRemaining(Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000)));
+    }, 1000);
     return () => clearTimeout(id);
   }, [remaining]);
 
   const handleAdjust = (delta: number) => {
     const newRemaining = Math.max(5, remaining + delta);
     const newTotal = Math.max(5, total + delta, newRemaining);
+    endTimeRef.current = Date.now() + newRemaining * 1000;
+    totalRef.current = newTotal;
     setRemaining(newRemaining);
     setTotal(newTotal);
     onAdjust(newTotal);
@@ -120,6 +158,8 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
     const val = parseInt(editValue, 10);
     if (!isNaN(val)) {
       const clamped = Math.min(600, Math.max(5, val));
+      endTimeRef.current = Date.now() + clamped * 1000;
+      totalRef.current = clamped;
       setRemaining(clamped);
       setTotal(clamped);
       onAdjust(clamped);
