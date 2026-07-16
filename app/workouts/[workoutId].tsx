@@ -32,6 +32,7 @@ import {
   getUserSetting,
   initDatabase,
   removeExerciseFromWorkout,
+  reorderWorkoutSets,
   updateTemplateFromWorkout,
   updateWorkoutExerciseOrder,
   updateWorkoutNotes,
@@ -122,7 +123,7 @@ export default function WorkoutInProgressScreen() {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
   const [exercisePRs, setExercisePRs] = useState<Map<string, number | null>>(new Map());
   const [newPRSetId, setNewPRSetId] = useState<string | null>(null);
-  const [liveSetTypePicker, setLiveSetTypePicker] = useState<{ setId: string; currentType: string } | null>(null);
+  const [liveSetTypePicker, setLiveSetTypePicker] = useState<{ setId: string; exerciseId: string; currentType: string } | null>(null);
   const [reorderMode, setReorderMode] = useState(false);
   const [exerciseOrder, setExerciseOrder] = useState<string[] | null>(null);
 
@@ -382,6 +383,36 @@ export default function WorkoutInProgressScreen() {
       });
       return next;
     });
+  };
+
+  // Déplace un set avant/après son voisin au sein du même exercice — permet par ex.
+  // d'ajouter un set puis de le remonter en tête pour servir de série d'échauffement.
+  const handleMoveSet = async (exerciseId: string, setId: string, direction: 'up' | 'down') => {
+    if (!workoutId || typeof workoutId !== 'string' || !session) return;
+    const exerciseSets = session.sets
+      .filter(s => s.exercise_id === exerciseId)
+      .sort((a, b) => a.set_index - b.set_index);
+    const idx = exerciseSets.findIndex(s => s.id === setId);
+    const swapWith = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapWith < 0 || swapWith >= exerciseSets.length) return;
+
+    const reordered = [...exerciseSets];
+    [reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]];
+    const orderedIds = reordered.map(s => s.id);
+
+    await reorderWorkoutSets(workoutId, exerciseId, orderedIds);
+
+    const newIndexById = new Map(orderedIds.map((id, i) => [id, i + 1]));
+    setSession(prev =>
+      prev
+        ? {
+            ...prev,
+            sets: prev.sets.map(s =>
+              s.exercise_id === exerciseId ? { ...s, set_index: newIndexById.get(s.id) ?? s.set_index } : s
+            ),
+          }
+        : prev
+    );
   };
 
   const handleToggleSetType = async (set: WorkoutSetRow) => {
@@ -672,7 +703,7 @@ export default function WorkoutInProgressScreen() {
                           >
                             <TouchableOpacity
                               style={[styles.setIndexCell, { width: 44 }]}
-                              onPress={() => !isFinished && setLiveSetTypePicker({ setId: set.id, currentType: set.set_type ?? 'normal' })}
+                              onPress={() => !isFinished && setLiveSetTypePicker({ setId: set.id, exerciseId: set.exercise_id, currentType: set.set_type ?? 'normal' })}
                               onLongPress={() => handleDeleteSet(set)}
                               delayLongPress={500}
                             >
@@ -901,6 +932,39 @@ export default function WorkoutInProgressScreen() {
                   )}
                 </TouchableOpacity>
               ))}
+
+              {(() => {
+                const exerciseSets = session?.sets
+                  .filter(s => s.exercise_id === liveSetTypePicker.exerciseId)
+                  .sort((a, b) => a.set_index - b.set_index) ?? [];
+                const idx = exerciseSets.findIndex(s => s.id === liveSetTypePicker.setId);
+                const canMoveUp = idx > 0;
+                const canMoveDown = idx !== -1 && idx < exerciseSets.length - 1;
+                if (!canMoveUp && !canMoveDown) return null;
+                return (
+                  <>
+                    <Text style={[styles.pickerTitle, { marginTop: 10, color: colors.text }]}>Position</Text>
+                    <View style={styles.pickerMoveRow}>
+                      <TouchableOpacity
+                        style={[styles.pickerMoveBtn, { backgroundColor: colors.background, opacity: canMoveUp ? 1 : 0.35 }]}
+                        disabled={!canMoveUp}
+                        onPress={() => handleMoveSet(liveSetTypePicker.exerciseId, liveSetTypePicker.setId, 'up')}
+                      >
+                        <IconSymbol name="chevron.up" size={16} color={colors.text} />
+                        <Text style={[styles.pickerMoveText, { color: colors.text }]}>Monter</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.pickerMoveBtn, { backgroundColor: colors.background, opacity: canMoveDown ? 1 : 0.35 }]}
+                        disabled={!canMoveDown}
+                        onPress={() => handleMoveSet(liveSetTypePicker.exerciseId, liveSetTypePicker.setId, 'down')}
+                      >
+                        <IconSymbol name="chevron.down" size={16} color={colors.text} />
+                        <Text style={[styles.pickerMoveText, { color: colors.text }]}>Descendre</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                );
+              })()}
             </View>
           </TouchableOpacity>
         </Modal>
@@ -1211,6 +1275,9 @@ const styles = StyleSheet.create({
   pickerOption: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10 },
   pickerDot: { width: 10, height: 10, borderRadius: 5 },
   pickerOptionText: { flex: 1, fontSize: 15 },
+  pickerMoveRow: { flexDirection: 'row', gap: 8 },
+  pickerMoveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10 },
+  pickerMoveText: { fontSize: 14, fontWeight: '600' },
 
   miniTabLabel: {
     fontSize: 9,

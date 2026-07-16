@@ -1636,6 +1636,22 @@ export const deleteWorkoutSet = async (setId: string): Promise<void> => {
   await database.runAsync('DELETE FROM workout_sets WHERE id = ?', setId);
 };
 
+/** Reassigns set_index (1-based) for one exercise's sets to match the given order —
+ *  e.g. moving a newly added set above the working sets to use as a warmup. */
+export const reorderWorkoutSets = async (
+  workoutId: string,
+  exerciseId: string,
+  orderedSetIds: string[]
+): Promise<void> => {
+  const database = await openDatabase();
+  for (let i = 0; i < orderedSetIds.length; i++) {
+    await database.runAsync(
+      'UPDATE workout_sets SET set_index = ? WHERE id = ? AND workout_id = ? AND exercise_id = ?',
+      i + 1, orderedSetIds[i], workoutId, exerciseId
+    );
+  }
+};
+
 export const updateWorkoutExerciseOrder = async (workoutId: string, orderedExerciseIds: string[]): Promise<void> => {
   const database = await openDatabase();
   for (let i = 0; i < orderedExerciseIds.length; i++) {
