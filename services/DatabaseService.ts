@@ -102,278 +102,9 @@ type SeedSet = { type: 'normal' | 'warmup' | 'dropset' | 'failure'; reps: number
 type SeedEx  = { exId: string; sets: SeedSet[] };
 type SeedTpl = { id: string; name: string; exercises: SeedEx[] };
 
+// Anciens templates Push/Pull/Legs/Upper/Upper B/Lower retirés — remplacés par le
+// programme coach 4 jours/semaine ci-dessous (v7, cf. cleanupLegacyTemplates()).
 const DEFAULT_TEMPLATES: SeedTpl[] = [
-  {
-    id: 'seed_push', name: 'Push',
-    exercises: [
-      { exId: 'Leverage_Chest_Press',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'wger_537',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Dumbbell_Flyes',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-      { exId: 'wger_543',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Side_Lateral_Raise',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-      { exId: 'Dips_-_Triceps_Version',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-    ],
-  },
-  {
-    id: 'seed_pull', name: 'Pull',
-    exercises: [
-      { exId: 'Wide-Grip_Lat_Pulldown',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Leverage_Iso_Row',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Seated_Cable_Rows',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Reverse_Machine_Flyes',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-      { exId: 'Machine_Preacher_Curls',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Incline_Dumbbell_Curl',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'seed_kneeling_band_pulldown',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-    ],
-  },
-  {
-    id: 'seed_legs', name: 'Legs',
-    exercises: [
-      { exId: 'Barbell_Squat',
-        sets: [
-          { type:'warmup', reps:10, weight:0,  rest:60  },
-          { type:'normal', reps:8,  weight:0,  rest:120 },
-          { type:'normal', reps:8,  weight:0,  rest:120 },
-          { type:'normal', reps:8,  weight:0,  rest:120 },
-        ]},
-      { exId: 'Leg_Press',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'wger_1366',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Stiff-Legged_Dumbbell_Deadlift',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Hyperextensions_(Back_Extensions)',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-      { exId: 'Thigh_Abductor',
-        sets: [
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
-        ]},
-      { exId: 'Thigh_Adductor',
-        sets: [
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
-        ]},
-    ],
-  },
-  {
-    id: 'seed_upper', name: 'Upper',
-    exercises: [
-      { exId: 'Smith_Machine_Incline_Bench_Press',
-        sets: [
-          { type:'warmup', reps:10, weight:0,  rest:60  },
-          { type:'normal', reps:8,  weight:35, rest:120 },
-          { type:'normal', reps:8,  weight:40, rest:120 },
-          { type:'normal', reps:8,  weight:35, rest:120 },
-        ]},
-      { exId: 'Chin-Up',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:120 },
-          { type:'normal', reps:8,  weight:0, rest:120 },
-          { type:'normal', reps:7,  weight:0, rest:120 },
-        ]},
-      { exId: 'One-Arm_Dumbbell_Row',
-        sets: [
-          { type:'normal', reps:8, weight:20, rest:90 },
-          { type:'normal', reps:8, weight:20, rest:90 },
-          { type:'normal', reps:8, weight:18, rest:90 },
-        ]},
-      { exId: 'wger_1730',
-        sets: [
-          { type:'normal', reps:10, weight:9, rest:60 },
-          { type:'normal', reps:10, weight:9, rest:60 },
-          { type:'normal', reps:10, weight:9, rest:60 },
-        ]},
-      { exId: 'Hammer_Curls',
-        sets: [
-          { type:'normal', reps:10, weight:14, rest:90 },
-          { type:'normal', reps:10, weight:14, rest:90 },
-          { type:'normal', reps:8,  weight:14, rest:90 },
-        ]},
-      { exId: 'Machine_Triceps_Extension',
-        sets: [
-          { type:'normal',  reps:10, weight:35, rest:90 },
-          { type:'dropset', reps:10, weight:25, rest:90 },
-        ]},
-    ],
-  },
-  {
-    id: 'seed_upper_b', name: 'Upper B',
-    exercises: [
-      { exId: 'Leverage_Chest_Press',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Dumbbell_Flyes',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-      { exId: 'Wide-Grip_Lat_Pulldown',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'wger_543',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-      { exId: 'Machine_Preacher_Curls',
-        sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-        ]},
-      { exId: 'Dips_-_Triceps_Version',
-        sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-        ]},
-    ],
-  },
-  {
-    id: 'seed_lower', name: 'Lower',
-    exercises: [
-      { exId: 'Barbell_Deadlift',
-        sets: [
-          { type:'warmup', reps:7,  weight:0,  rest:60  },
-          { type:'normal', reps:8,  weight:40, rest:180 },
-          { type:'normal', reps:8,  weight:40, rest:180 },
-          { type:'normal', reps:7,  weight:40, rest:180 },
-        ]},
-      { exId: 'Leg_Press',
-        sets: [
-          { type:'normal', reps:8, weight:93, rest:120 },
-          { type:'normal', reps:8, weight:93, rest:120 },
-          { type:'normal', reps:8, weight:93, rest:120 },
-        ]},
-      { exId: 'Seated_Leg_Curl',
-        sets: [
-          { type:'normal', reps:8, weight:64, rest:90 },
-          { type:'normal', reps:8, weight:64, rest:90 },
-          { type:'normal', reps:8, weight:59, rest:90 },
-        ]},
-      { exId: 'Dumbbell_Lunges',
-        sets: [
-          { type:'normal', reps:8, weight:14, rest:90 },
-          { type:'normal', reps:8, weight:14, rest:90 },
-          { type:'normal', reps:8, weight:14, rest:90 },
-        ]},
-      { exId: 'Ab_Crunch_Machine',
-        sets: [
-          { type:'normal', reps:8, weight:55, rest:60 },
-          { type:'normal', reps:8, weight:55, rest:60 },
-          { type:'normal', reps:8, weight:55, rest:60 },
-        ]},
-      { exId: 'Thigh_Abductor',
-        sets: [
-          { type:'normal', reps:8, weight:36, rest:60 },
-          { type:'normal', reps:8, weight:36, rest:60 },
-          { type:'normal', reps:8, weight:36, rest:60 },
-        ]},
-      { exId: 'Thigh_Adductor',
-        sets: [
-          { type:'normal', reps:10, weight:36, rest:60 },
-          { type:'normal', reps:10, weight:36, rest:60 },
-          { type:'normal', reps:9,  weight:40, rest:60 },
-        ]},
-      { exId: 'Plank',
-        sets: [
-          { type:'normal', reps:60, weight:0, rest:60 },
-        ]},
-    ],
-  },
   // ── Programme coach 4 jours/semaine — chaque groupe musculaire travaillé 2×/semaine ──
   {
     id: 'seed_haut_a', name: 'Haut du corps A',
@@ -587,6 +318,25 @@ async function seedDefaultTemplates(database: SQLite.SQLiteDatabase): Promise<vo
   }
 }
 
+// Anciens templates (Push/Pull/Legs/Upper/Upper B/Lower) remplacés par le programme
+// coach 4 jours — supprime la définition du template et ses exercices/sets liés.
+// Les séances déjà réalisées dans l'historique ne sont pas touchées (elles ne
+// référencent que workout_id, pas le template).
+const LEGACY_TEMPLATE_IDS = ['seed_push', 'seed_pull', 'seed_legs', 'seed_upper', 'seed_upper_b', 'seed_lower'];
+
+async function cleanupLegacyTemplates(database: SQLite.SQLiteDatabase): Promise<void> {
+  for (const templateId of LEGACY_TEMPLATE_IDS) {
+    const tes = await database.getAllAsync<{ id: string }>(
+      'SELECT id FROM workout_template_exercises WHERE template_id = ?', templateId
+    );
+    for (const te of tes) {
+      await database.runAsync('DELETE FROM template_exercise_sets WHERE template_exercise_id = ?', te.id);
+    }
+    await database.runAsync('DELETE FROM workout_template_exercises WHERE template_id = ?', templateId);
+    await database.runAsync('DELETE FROM workout_templates WHERE id = ?', templateId);
+  }
+}
+
 const _doInit = async () => {
   const database = await openDatabase();
 
@@ -721,13 +471,15 @@ const _doInit = async () => {
     }
   }
 
-  // Seed default templates — v6 : programme coach 4 jours/semaine (Haut/Bas A+B, 2×/semaine par groupe)
-  const SEED_VERSION = 6;
+  // Seed default templates — v7 : suppression Push/Pull/Legs/Upper/Upper B/Lower,
+  // remplacés par le programme coach 4 jours/semaine (Haut/Bas A+B, 2×/semaine par groupe)
+  const SEED_VERSION = 7;
   const seedVerRow = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM user_settings WHERE key = 'seed_version'"
   );
   const currentSeedVersion = seedVerRow ? parseInt(seedVerRow.value, 10) : 0;
   if (currentSeedVersion < SEED_VERSION) {
+    await cleanupLegacyTemplates(database);
     await seedDefaultTemplates(database);
     await database.runAsync(
       "INSERT OR REPLACE INTO user_settings (key, value) VALUES ('seed_version', ?)",
