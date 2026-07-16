@@ -1,4 +1,5 @@
 import exerciseImageMap from '@/assets/data/exerciseImageMap';
+import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
 import { ErrorView } from '@/components/shared/ErrorView';
 import { initialExercises } from '@/assets/data/generatedExercises';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -6,8 +7,8 @@ import { Colors } from '@/constants/theme';
 import { MUSCLE_LABELS, translateEquipment, translateMuscle } from '@/constants/translations';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
-import { addExercisesToTemplate, createWorkoutWithExercises, getExercises, initDatabase } from '@/services/DatabaseService';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { addExercisesToTemplate, createWorkoutWithExercises, getActiveWorkout, getExercises, initDatabase } from '@/services/DatabaseService';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,6 +79,29 @@ export default function ExerciseLibraryScreen() {
   const [exercises, setExercises] = useState<any[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Rafraîchit la bannière "séance en cours" à chaque passage sur l'onglet
+  // (utile pour repérer un onglet minimisé depuis la mini tab bar de la séance)
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          await initDatabase();
+          const active = await getActiveWorkout();
+          if (!cancelled) {
+            setActiveWorkout(active);
+            setBannerDismissed(false);
+          }
+        } catch (e) {
+          console.error('[exercises] active workout check error:', e);
+        }
+      })();
+      return () => { cancelled = true; };
+    }, [])
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -179,9 +203,15 @@ export default function ExerciseLibraryScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-          <IconSymbol name="chevron.left" size={28} color={colors.text} />
-        </TouchableOpacity>
+        {isTemplatePicker ? (
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <IconSymbol name="chevron.left" size={28} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          // Onglet racine accessible depuis la tab bar : pas d'écran précédent vers lequel
+          // revenir, donc pas de flèche retour — placeholder pour garder le titre centré.
+          <View style={[styles.iconBtn, { width: 44, height: 44 }]} />
+        )}
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {isTemplatePicker ? 'Ajouter des exercices' : 'Bibliothèque d\'exercices'}
         </Text>
@@ -189,6 +219,18 @@ export default function ExerciseLibraryScreen() {
           <IconSymbol name="plus" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
+
+      {activeWorkout && !bannerDismissed && (
+        <View style={{ paddingHorizontal: 16 }}>
+          <ActiveWorkoutBanner
+            workoutName={activeWorkout.name}
+            onResume={() =>
+              router.push({ pathname: '/workouts/[workoutId]', params: { workoutId: activeWorkout.id } })
+            }
+            onDismiss={() => setBannerDismissed(true)}
+          />
+        </View>
+      )}
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>

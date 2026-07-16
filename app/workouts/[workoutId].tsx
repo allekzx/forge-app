@@ -126,10 +126,23 @@ export default function WorkoutInProgressScreen() {
   const [reorderMode, setReorderMode] = useState(false);
   const [exerciseOrder, setExerciseOrder] = useState<string[] | null>(null);
 
+  // Navigation délibérée (minimiser, mini tab bar) : les sets sont déjà persistés en
+  // DB au fil de l'eau, donc ces sorties volontaires n'ont pas besoin de confirmation —
+  // seul un retour "surprise" (geste swipe, bouton back matériel) doit être protégé.
+  const skipGuardRef = useRef(false);
+  const navigateWithoutGuard = (action: () => void) => {
+    skipGuardRef.current = true;
+    action();
+  };
+
   // Intercepte le retour arrière pour protéger la séance en cours
   useEffect(() => {
     if (isFinished) return;
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (skipGuardRef.current) {
+        skipGuardRef.current = false;
+        return;
+      }
       const hasCompletedSets = session?.sets.some(s => s.completed_at !== null);
       e.preventDefault();
       if (!hasCompletedSets) {
@@ -446,7 +459,7 @@ export default function WorkoutInProgressScreen() {
               <Text style={[styles.reorderDoneText, { color: colors.tint }]}>Terminé</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <TouchableOpacity onPress={() => navigateWithoutGuard(() => router.back())} style={styles.backBtn}>
               <IconSymbol name="chevron.down" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
@@ -841,7 +854,7 @@ export default function WorkoutInProgressScreen() {
                   <TouchableOpacity
                     key={tab.route}
                     style={styles.miniTabItem}
-                    onPress={() => router.replace(tab.route as any)}
+                    onPress={() => navigateWithoutGuard(() => router.replace(tab.route as any))}
                     activeOpacity={0.7}
                   >
                     <IconSymbol name={tab.icon} size={20} color={colors.icon} />

@@ -885,6 +885,19 @@ export type WeeklyStats = {
   totalDurationMinutes: number;
 };
 
+/**
+ * Formats a Date as YYYY-MM-DD using its LOCAL calendar fields.
+ * `toISOString()` converts to UTC first, which shifts the date by one day
+ * near midnight for any non-UTC timezone (e.g. France) — the exact mismatch
+ * that made workouts show up on the wrong day in the weekly calendar.
+ */
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** Returns activity data for the current Mon–Sun week */
 export const getWeeklyStats = async (): Promise<WeeklyStats> => {
   const database = await openDatabase();
@@ -895,9 +908,12 @@ export const getWeeklyStats = async (): Promise<WeeklyStats> => {
   const monday = new Date(today);
   monday.setDate(today.getDate() - daysFromMonday);
   monday.setHours(0, 0, 0, 0);
-  const mondayStr = monday.toISOString().split('T')[0];
+  const mondayStr = localDateStr(monday);
 
   // Toutes les stats en une seule requête JOIN — pas d'interpolation de chaîne
+  // `created_at`/`finished_at` sont stockés en UTC (toISOString) : le modifieur
+  // 'localtime' convertit vers le fuseau de l'appareil avant d'extraire la date,
+  // pour que le regroupement par jour corresponde au calendrier local de l'utilisateur.
   const stats = await database.getFirstAsync<{
     totalVolume: number;
     workoutCount: number;
@@ -910,14 +926,14 @@ export const getWeeklyStats = async (): Promise<WeeklyStats> => {
        COALESCE(SUM(strftime('%s', w.finished_at) - strftime('%s', w.created_at)), 0) AS totalDurationSeconds
      FROM workouts w
      LEFT JOIN workout_sets ws ON ws.workout_id = w.id
-     WHERE DATE(w.created_at) >= ?
+     WHERE DATE(w.created_at, 'localtime') >= ?
        AND w.finished_at IS NOT NULL`,
     mondayStr
   );
 
   // Jours actifs — uniquement les séances terminées
   const activeDayRows = await database.getAllAsync<{ date: string }>(
-    `SELECT DISTINCT DATE(created_at) AS date FROM workouts WHERE DATE(created_at) >= ? AND finished_at IS NOT NULL`,
+    `SELECT DISTINCT DATE(created_at, 'localtime') AS date FROM workouts WHERE DATE(created_at, 'localtime') >= ? AND finished_at IS NOT NULL`,
     mondayStr
   );
   const activeDates = new Set(activeDayRows.map(r => r.date));
@@ -925,7 +941,7 @@ export const getWeeklyStats = async (): Promise<WeeklyStats> => {
   const days: WeekDayActivity[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = localDateStr(d);
     return { date: dateStr, hasWorkout: activeDates.has(dateStr) };
   });
 
@@ -1044,14 +1060,14 @@ export const getVolumeByWeek = async (weeks: number = 8): Promise<VolumeByWeek[]
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
 
-    const startStr = weekStart.toISOString().split('T')[0];
-    const endStr = weekEnd.toISOString().split('T')[0];
+    const startStr = localDateStr(weekStart);
+    const endStr = localDateStr(weekEnd);
 
     const vol = await database.getFirstAsync<{ volume: number }>(
       `SELECT COALESCE(SUM(ws.actual_weight * ws.actual_reps), 0) as volume
        FROM workout_sets ws
        JOIN workouts w ON w.id = ws.workout_id
-       WHERE DATE(w.created_at) >= ? AND DATE(w.created_at) <= ?
+       WHERE DATE(w.created_at, 'localtime') >= ? AND DATE(w.created_at, 'localtime') <= ?
          AND ws.completed_at IS NOT NULL
          AND ws.actual_weight IS NOT NULL
          AND ws.actual_reps IS NOT NULL`,
@@ -1768,14 +1784,14 @@ export type ExerciseProgressPoint = { date: string; maxWeight: number };
 export const getExerciseProgressHistory = async (exerciseId: string): Promise<ExerciseProgressPoint[]> => {
   const database = await openDatabase();
   const rows = await database.getAllAsync<{ date: string; maxWeight: number }>(
-    `SELECT DATE(w.finished_at) as date, MAX(ws.actual_weight) as maxWeight
+    `SELECT DATE(w.finished_at, 'localtime') as date, MAX(ws.actual_weight) as maxWeight
      FROM workout_sets ws
      JOIN workouts w ON w.id = ws.workout_id
      WHERE ws.exercise_id = ?
        AND ws.actual_weight IS NOT NULL
        AND ws.completed_at IS NOT NULL
        AND w.finished_at IS NOT NULL
-     GROUP BY DATE(w.finished_at)
+     GROUP BY DATE(w.finished_at, 'localtime')
      ORDER BY w.finished_at ASC`,
     exerciseId
   );

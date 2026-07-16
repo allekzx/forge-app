@@ -1,3 +1,4 @@
+import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
 import { ErrorView } from '@/components/shared/ErrorView';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -7,6 +8,7 @@ import {
   PersonalRecord,
   VolumeByWeek,
   WeeklyStats,
+  getActiveWorkout,
   getBodyMeasurements,
   getPersonalRecords,
   getTotalSetsAllTime,
@@ -32,7 +34,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Volume Bar Chart ─────────────────────────────────────────────────────────
@@ -206,7 +208,10 @@ function muscleBadgeColor(muscle: string): string {
 export default function StatsScreen() {
   const colorScheme = useColorScheme();
   const colors = useColors();
+  const router = useRouter();
 
+  const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
   const [prs, setPrs] = useState<PersonalRecord[]>([]);
   const [volumeByWeek, setVolumeByWeek] = useState<VolumeByWeek[]>([]);
@@ -233,6 +238,9 @@ export default function StatsScreen() {
       const allVol = await getTotalVolumeAllTime();
       const allWorkouts = await getTotalWorkoutsAllTime();
       const allSets = await getTotalSetsAllTime();
+      const active = await getActiveWorkout();
+      setActiveWorkout(active);
+      setBannerDismissed(false);
       setWeeklyStats(ws);
       setPrs(records);
       setVolumeByWeek(vol);
@@ -290,6 +298,16 @@ export default function StatsScreen() {
               <Text style={[styles.streakText, { color: colors.text }]}>{streak} semaine{streak !== 1 ? 's' : ''}</Text>
             </View>
           </View>
+
+          {activeWorkout && !bannerDismissed && (
+            <ActiveWorkoutBanner
+              workoutName={activeWorkout.name}
+              onResume={() =>
+                router.push({ pathname: '/workouts/[workoutId]', params: { workoutId: activeWorkout.id } })
+              }
+              onDismiss={() => setBannerDismissed(true)}
+            />
+          )}
 
           {/* All-Time Summary */}
           <View style={[styles.allTimeCard, { backgroundColor: colors.card }]}>

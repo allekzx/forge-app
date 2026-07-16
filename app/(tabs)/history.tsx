@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
 import { ErrorView } from '@/components/shared/ErrorView';
 import { ThemedText } from '@/components/themed-text';
 import { useColors } from '@/hooks/use-colors';
-import { WorkoutSummary, getWorkouts, initDatabase } from '@/services/DatabaseService';
+import { WorkoutSummary, getActiveWorkout, getWorkouts, initDatabase } from '@/services/DatabaseService';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 function formatDate(iso: string): string {
@@ -24,6 +25,8 @@ export default function HistoryScreen() {
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string } | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const router = useRouter();
 
   const loadData = useCallback(async () => {
@@ -31,8 +34,10 @@ export default function HistoryScreen() {
     setLoading(true);
     try {
       await initDatabase();
-      const data = await getWorkouts(true);
+      const [data, active] = await Promise.all([getWorkouts(true), getActiveWorkout()]);
       setWorkouts(data);
+      setActiveWorkout(active);
+      setBannerDismissed(false);
     } catch (e) {
       console.error('[history] load error:', e);
       setError('Impossible de charger l\'historique.');
@@ -80,6 +85,16 @@ export default function HistoryScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.inner}>
         <ThemedText type="title" style={styles.title}>Historique</ThemedText>
+
+        {activeWorkout && !bannerDismissed && (
+          <ActiveWorkoutBanner
+            workoutName={activeWorkout.name}
+            onResume={() =>
+              router.push({ pathname: '/workouts/[workoutId]', params: { workoutId: activeWorkout.id } })
+            }
+            onDismiss={() => setBannerDismissed(true)}
+          />
+        )}
 
         {loading && <ThemedText style={{ color: colors.icon }}>Chargement…</ThemedText>}
 

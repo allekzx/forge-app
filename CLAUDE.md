@@ -40,10 +40,15 @@ Tu coordonnes 3 agents spécialisés et tu t'assures de la cohérence globale du
 - `src/theme/` — tokens de design (couleurs, typo, spacing)
 
 ## État du projet
-> 📝 Mis à jour le 2026-04-23
+> 📝 Mis à jour le 2026-07-16
 
-- **Dernière session** : Orchestrateur session 10 — bug React Compiler corrigé + 3 nouvelles tâches
-- **Sessions précédentes** : toutes les tâches sessions 1-8 sont ✅ terminées
+- **Dernière session** : Session 11 — audit logique complet (navigation, calendrier, chrono) + 4 corrections :
+  - ✅ **Bug calendrier** — `getWeeklyStats()`, `getVolumeByWeek()`, `getExerciseProgressHistory()` dans `services/DatabaseService.ts` comparaient des dates UTC (`toISOString()`) à des dates SQLite non converties (`DATE(created_at)`), décalant d'un jour les séances faites tôt le matin/tard le soir en heure locale (France). Fix : helper `localDateStr()` + modifieur SQLite `'localtime'` partout où une date est extraite d'un timestamp stocké.
+  - ✅ **Boucle de navigation "retour"** — `app/workouts/[workoutId].tsx` : le listener `beforeRemove` interceptait aussi bien le geste de fermeture accidentel que les actions volontaires (bouton minimiser, mini tab bar), forçant une confirmation "Mettre en pause ?" à chaque changement d'onglet. Fix : ref `skipGuardRef` pour laisser passer les navigations délibérées sans confirmation, en gardant la protection sur les vraies fermetures (swipe/back matériel).
+  - ✅ **Flèche retour fantôme** — `app/(tabs)/exercises.tsx` affichait un chevron "retour" même en accès direct depuis la tab bar (seul onglet des 5 dans ce cas), sans destination cohérente. Masqué hors du mode picker de template.
+  - ✅ **Bannière "Reprendre" absente de 3 onglets sur 5** — `ActiveWorkoutBanner` (FR-002 de `specs/002-fix-prod-blockers`) n'était monté que sur Accueil et Séance ; un utilisateur minimisant vers Historique/Exercices/Mesures n'avait aucun chemin de retour vers sa séance active. Ajouté aux 3 écrans manquants.
+  - ℹ️ Chrono de repos (RestTimer) déjà fiable en veille depuis la session précédente (commit `d07764d`) — vérifié, pas de régression.
+- **Sessions précédentes** : Orchestrateur session 10 — bug React Compiler corrigé + 3 nouvelles tâches ; toutes les tâches sessions 1-8 sont ✅ terminées
 - **En cours (session 9)** :
   - 🔴 Agent Database — Corriger calcul `getTotalVolumeAllTime()` (weight × reps)
   - 🔴 Agent Workout — Isoler `<RestTimer />` (re-renders perf)
