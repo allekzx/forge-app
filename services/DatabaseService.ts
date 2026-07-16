@@ -374,6 +374,154 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
         ]},
     ],
   },
+  // ── Programme coach 4 jours/semaine — chaque groupe musculaire travaillé 2×/semaine ──
+  {
+    id: 'seed_haut_a', name: 'Haut du corps A',
+    exercises: [
+      { exId: 'Leverage_Chest_Press', // Développé couché machine
+        sets: [
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+        ]},
+      { exId: 'Chin-Up', // Tractions supination
+        sets: [
+          { type:'normal', reps:8, weight:0, rest:90 },
+          { type:'normal', reps:8, weight:0, rest:90 },
+          { type:'normal', reps:8, weight:0, rest:90 },
+          { type:'normal', reps:8, weight:0, rest:90 },
+        ]},
+      { exId: 'One-Arm_Dumbbell_Row', // Rowing haltères sur banc
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+      { exId: 'wger_543', // Développé épaules machine
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+      { exId: 'Hammer_Curls', // Hammer curl
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+        ]},
+      { exId: 'Machine_Triceps_Extension', // Triceps extension
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+        ]},
+    ],
+  },
+  {
+    id: 'seed_bas_a', name: 'Bas du corps A',
+    exercises: [
+      { exId: 'Barbell_Squat', // Squat barre
+        sets: [
+          { type:'warmup', reps:10, weight:0, rest:60  },
+          { type:'normal', reps:7,  weight:0, rest:120 },
+          { type:'normal', reps:7,  weight:0, rest:120 },
+          { type:'normal', reps:7,  weight:0, rest:120 },
+        ]},
+      { exId: 'Barbell_Deadlift', // Deadlift
+        sets: [
+          { type:'warmup', reps:8, weight:0, rest:60  },
+          { type:'normal', reps:7, weight:0, rest:120 },
+          { type:'normal', reps:7, weight:0, rest:120 },
+          { type:'normal', reps:7, weight:0, rest:120 },
+        ]},
+      { exId: 'wger_1366', // Bulgarian Split Squat
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+      { exId: 'Plank', // Planche
+        sets: [
+          { type:'normal', reps:40, weight:0, rest:60 },
+          { type:'normal', reps:40, weight:0, rest:60 },
+          { type:'normal', reps:40, weight:0, rest:60 },
+        ]},
+    ],
+  },
+  {
+    id: 'seed_haut_b', name: 'Haut du corps B',
+    exercises: [
+      { exId: 'Smith_Machine_Incline_Bench_Press', // Développé incliné Smith
+        sets: [
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+        ]},
+      { exId: 'Wide-Grip_Lat_Pulldown', // Tirage vertical prise large
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+        ]},
+      { exId: 'Seated_Cable_Rows', // Rowing câble assis
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+      { exId: 'Side_Lateral_Raise', // Élévations latérales haltères
+        sets: [
+          { type:'normal', reps:13, weight:0, rest:60 },
+          { type:'normal', reps:13, weight:0, rest:60 },
+          { type:'normal', reps:13, weight:0, rest:60 },
+        ]},
+      { exId: 'Machine_Preacher_Curls', // Curl pupitre machine
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+        ]},
+      { exId: 'Dips_-_Triceps_Version', // Dips triceps
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+        ]},
+    ],
+  },
+  {
+    id: 'seed_bas_b', name: 'Bas du corps B',
+    exercises: [
+      { exId: 'Leg_Press', // Presse
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+        ]},
+      { exId: 'Stiff-Legged_Barbell_Deadlift', // Soulevé de terre jambes tendues (barre)
+        sets: [
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+        ]},
+      { exId: 'Dumbbell_Lunges', // Fentes marchées
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+      { exId: 'Seated_Leg_Curl', // Curl ischios machine
+        sets: [
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+          { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+    ],
+  },
 ];
 
 async function seedDefaultTemplates(database: SQLite.SQLiteDatabase): Promise<void> {
@@ -573,8 +721,8 @@ const _doInit = async () => {
     }
   }
 
-  // Seed default templates — v5 : Legs — Machine abdos remplacée par Extensions lombaires
-  const SEED_VERSION = 5;
+  // Seed default templates — v6 : programme coach 4 jours/semaine (Haut/Bas A+B, 2×/semaine par groupe)
+  const SEED_VERSION = 6;
   const seedVerRow = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM user_settings WHERE key = 'seed_version'"
   );
@@ -652,8 +800,8 @@ const _doInit = async () => {
   // Fix reps for Kneeling Pulldown Band sets in Pull template (old seed had 10, now 12)
   await database.runAsync('UPDATE template_exercise_sets SET target_reps = 12 WHERE id IN (?, ?, ?)', 'seed_pull_e7_s1', 'seed_pull_e7_s2', 'seed_pull_e7_s3');
 
-  // Rename exercises to match user's own naming convention — version 2
-  const EXERCISE_NAME_VERSION = 2;
+  // Rename exercises to match user's own naming convention — version 3
+  const EXERCISE_NAME_VERSION = 3;
   const nameVerRow = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM user_settings WHERE key = 'exercise_name_version'"
   );
@@ -695,6 +843,8 @@ const _doInit = async () => {
       ['wger_1366',                         'Bulgarian Split Squat'],
       ['Stiff-Legged_Dumbbell_Deadlift',    'Soulevé de terre jambes tendues'],
       ['Hyperextensions_(Back_Extensions)', 'Extensions lombaires'],
+      // ── Programme coach 4 jours (Bas B) ─────────────────────────────────────
+      ['Stiff-Legged_Barbell_Deadlift',     'Soulevé de terre jambes tendues (barre)'],
     ];
     for (const [id, name] of renames) {
       await database.runAsync('UPDATE exercises SET name = ? WHERE id = ?', name, id);
