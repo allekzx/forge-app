@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +14,7 @@ import {
   resetAllWorkoutData,
   saveUserSetting,
 } from '@/services/DatabaseService';
+import { exportAndShareBackup, pickBackupFile, restoreBackup } from '@/services/BackupService';
 import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
@@ -24,6 +25,8 @@ export default function SettingsScreen() {
 
   const [userName, setUserName] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Animation pour le toggle Clair/Sombre — 0 = Clair, 1 = Sombre
   const themeAnim = useRef(new Animated.Value(colorScheme === 'dark' ? 1 : 0)).current;
@@ -97,6 +100,63 @@ export default function SettingsScreen() {
       ]
     );
   }, [router]);
+
+  const handleExport = useCallback(async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      await exportAndShareBackup();
+    } catch (e) {
+      console.error('[settings] export error:', e);
+      Alert.alert('Export impossible', e instanceof Error ? e.message : 'Une erreur est survenue.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isExporting]);
+
+  const handleImport = useCallback(async () => {
+    if (isImporting) return;
+    setIsImporting(true);
+
+    let picked: Awaited<ReturnType<typeof pickBackupFile>>;
+    try {
+      picked = await pickBackupFile();
+    } catch (e) {
+      console.error('[settings] pick backup error:', e);
+      Alert.alert('Import impossible', e instanceof Error ? e.message : 'Une erreur est survenue.');
+      setIsImporting(false);
+      return;
+    }
+    if (picked.canceled) {
+      setIsImporting(false);
+      return;
+    }
+
+    Alert.alert(
+      'Importer cette sauvegarde ?',
+      `Ce fichier contient ${picked.workoutCount} séance${picked.workoutCount > 1 ? 's' : ''}. ` +
+      'Importer remplacera TOUTES tes données actuelles (séances, routines, mesures, réglages). Cette action est irréversible.',
+      [
+        { text: 'Annuler', style: 'cancel', onPress: () => setIsImporting(false) },
+        {
+          text: 'Remplacer mes données',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await restoreBackup(picked.data);
+              router.replace('/(tabs)');
+            } catch (e) {
+              console.error('[settings] restore error:', e);
+              Alert.alert('Import impossible', e instanceof Error ? e.message : 'Une erreur est survenue.');
+            } finally {
+              setIsImporting(false);
+            }
+          },
+        },
+      ],
+      { onDismiss: () => setIsImporting(false) }
+    );
+  }, [isImporting, router]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -212,7 +272,25 @@ export default function SettingsScreen() {
 
         {/* Données */}
         <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>DONNÉES</ThemedText>
+        <ThemedText style={[styles.sectionHint, { color: colors.icon }]}>
+          L&apos;app fonctionne 100% hors ligne, sans sauvegarde automatique dans le cloud.
+          Exporte régulièrement tes données pour ne rien perdre en cas de changement de téléphone.
+        </ThemedText>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <TouchableOpacity style={styles.row} onPress={handleExport} activeOpacity={0.7} disabled={isExporting}>
+            <ThemedText style={styles.rowLabel}>Exporter mes données</ThemedText>
+            {isExporting ? <ActivityIndicator size="small" color={colors.tint} /> : <IconSymbol name="square.and.arrow.up" size={18} color={colors.tint} />}
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.background }]} />
+
+          <TouchableOpacity style={styles.row} onPress={handleImport} activeOpacity={0.7} disabled={isImporting}>
+            <ThemedText style={styles.rowLabel}>Importer une sauvegarde</ThemedText>
+            {isImporting ? <ActivityIndicator size="small" color={colors.tint} /> : <IconSymbol name="square.and.arrow.down" size={18} color={colors.tint} />}
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.background }]} />
+
           <TouchableOpacity style={styles.dangerRow} onPress={handleReset} activeOpacity={0.7}>
             <ThemedText style={styles.dangerText}>Réinitialiser toutes les données</ThemedText>
           </TouchableOpacity>
@@ -255,6 +333,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 16,
     marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  sectionHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
   card: {

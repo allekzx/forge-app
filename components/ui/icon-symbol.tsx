@@ -55,6 +55,8 @@ const MAPPING = {
   'minus.circle.fill': 'remove-circle',
   'minus.circle': 'remove-circle-outline',
   'circle': 'radio-button-unchecked',
+  'square.and.arrow.up': 'file-upload',
+  'square.and.arrow.down': 'file-download',
 } as IconMapping;
 
 /**

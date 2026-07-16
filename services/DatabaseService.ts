@@ -1866,9 +1866,97 @@ export const resetAllWorkoutData = async (): Promise<void> => {
     DELETE FROM workout_sets;
     DELETE FROM workout_exercises;
     DELETE FROM workouts;
+    DELETE FROM template_exercise_sets;
     DELETE FROM workout_template_exercises;
     DELETE FROM workout_templates;
     DELETE FROM body_measurements;
     DELETE FROM user_settings;
   `);
+};
+
+// ─── Backup & Restore ──────────────────────────────────────────────────────────
+// L'app est strictement hors ligne (pas de sync cloud) : ceci est le seul filet
+// de sécurité contre une perte de données (changement de téléphone, désinstall).
+
+const BACKUP_VERSION = 1;
+
+// Tables génériques dumpées telles quelles. `exercises` est gérée à part
+// (seules les entrées personnalisées le sont — les 1500+ exercices du
+// catalogue de base sont reseedés automatiquement par initDatabase()).
+const BACKUP_TABLES = [
+  'workout_templates',
+  'workout_template_exercises',
+  'template_exercise_sets',
+  'workouts',
+  'workout_exercises',
+  'workout_sets',
+  'body_measurements',
+  'user_settings',
+] as const;
+
+export type BackupData = {
+  version: number;
+  exportedAt: string;
+  tables: Record<string, Record<string, unknown>[]>;
+};
+
+/** Dumps all user-generated data into a portable JSON structure for backup/export. */
+export const exportAllData = async (): Promise<BackupData> => {
+  const database = await openDatabase();
+  const tables: Record<string, Record<string, unknown>[]> = {};
+
+  for (const table of BACKUP_TABLES) {
+    tables[table] = await database.getAllAsync<Record<string, unknown>>(`SELECT * FROM ${table}`);
+  }
+  tables.exercises = await database.getAllAsync<Record<string, unknown>>(
+    'SELECT * FROM exercises WHERE is_custom = 1'
+  );
+
+  return { version: BACKUP_VERSION, exportedAt: new Date().toISOString(), tables };
+};
+
+/**
+ * Replaces all local data with the contents of a previously exported backup.
+ * Destructive — meant to be gated behind an explicit user confirmation upstream.
+ *
+ * A backup file is untrusted input: column *names* can't be parameterized in SQL
+ * (only values can), so instead of trusting whatever keys the JSON contains, each
+ * row is whitelisted against the table's real columns read live via
+ * `pragma_table_info` before being inserted.
+ */
+export const restoreAllData = async (backup: BackupData): Promise<void> => {
+  if (!backup || typeof backup !== 'object' || !backup.tables || typeof backup.version !== 'number') {
+    throw new Error('Fichier de sauvegarde invalide');
+  }
+  const database = await openDatabase();
+
+  await database.runAsync('DELETE FROM exercises WHERE is_custom = 1');
+  for (const table of BACKUP_TABLES) {
+    await database.runAsync(`DELETE FROM ${table}`);
+  }
+
+  const insertOrder = [
+    'exercises', 'workout_templates', 'workout_template_exercises', 'template_exercise_sets',
+    'workouts', 'workout_exercises', 'workout_sets', 'body_measurements', 'user_settings',
+  ] as const;
+
+  for (const table of insertOrder) {
+    const rows = backup.tables[table];
+    if (!Array.isArray(rows) || rows.length === 0) continue;
+
+    const schemaCols = await database.getAllAsync<{ name: string }>(`SELECT name FROM pragma_table_info('${table}')`);
+    const validCols = new Set(schemaCols.map(c => c.name));
+
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue;
+      const cols = Object.keys(row).filter(k => validCols.has(k));
+      if (!cols.length) continue;
+      const placeholders = cols.map(() => '?').join(', ');
+      const values = cols.map(c => row[c] as string | number | null);
+      await database.runAsync(
+        `INSERT OR REPLACE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`,
+        ...values
+      );
+    }
+  }
 };
