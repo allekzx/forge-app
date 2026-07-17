@@ -276,6 +276,19 @@ export default function WorkoutInProgressScreen() {
     }
     if (field === 'toggleComplete') {
       payload.toggleComplete = true;
+      // Flush poids/reps pas encore persistés via onEndEditing — ex. l'utilisateur
+      // saisit une valeur puis tape directement sur le check avant que le champ ne
+      // perde le focus (onEndEditing n'est pas garanti de se déclencher avant).
+      // Même filet de sécurité que celui déjà appliqué dans handleFinish.
+      if (!set.completed_at) {
+        const pending = pendingValues.get(set.id);
+        if (pending) {
+          const pWeight = displayToKg(pending.weight, weightUnit);
+          const pReps = parseInt(pending.reps, 10);
+          if (!isNaN(pWeight) && pWeight >= 0) payload.actual_weight = pWeight;
+          if (!isNaN(pReps) && pReps >= 0) payload.actual_reps = pReps;
+        }
+      }
     }
 
     await updateWorkoutSet(set.id, payload);
