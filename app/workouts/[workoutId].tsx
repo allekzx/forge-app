@@ -247,6 +247,12 @@ export default function WorkoutInProgressScreen() {
       }
       map.get(s.exercise_id)!.sets.push(s);
     }
+    // Toujours réordonner par set_index : handleMoveSet met à jour set_index sans
+    // réordonner le tableau session.sets, donc l'ordre d'affichage doit se recalculer
+    // ici plutôt que de dépendre de l'ordre d'insertion.
+    for (const group of map.values()) {
+      group.sets.sort((a, b) => a.set_index - b.set_index);
+    }
     const items = Array.from(map.values());
     if (exerciseOrder) {
       const orderMap = new Map(exerciseOrder.map((id, i) => [id, i]));
