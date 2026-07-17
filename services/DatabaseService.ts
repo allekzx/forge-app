@@ -178,6 +178,12 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
           { type:'normal', reps:40, weight:0, rest:60 },
           { type:'normal', reps:40, weight:0, rest:60 },
         ]},
+      { exId: 'Hyperextensions_(Back_Extensions)', // Extensions lombaires
+        sets: [
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
+        ]},
     ],
   },
   {
@@ -250,6 +256,12 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
           { type:'normal', reps:11, weight:0, rest:75 },
           { type:'normal', reps:11, weight:0, rest:75 },
           { type:'normal', reps:11, weight:0, rest:75 },
+        ]},
+      { exId: 'Ab_Crunch_Machine', // Machine abdos
+        sets: [
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
         ]},
     ],
   },
@@ -471,9 +483,8 @@ const _doInit = async () => {
     }
   }
 
-  // Seed default templates — v7 : suppression Push/Pull/Legs/Upper/Upper B/Lower,
-  // remplacés par le programme coach 4 jours/semaine (Haut/Bas A+B, 2×/semaine par groupe)
-  const SEED_VERSION = 7;
+  // Seed default templates — v8 : ajout Machine abdos (Bas B) + Extensions lombaires (Bas A)
+  const SEED_VERSION = 8;
   const seedVerRow = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM user_settings WHERE key = 'seed_version'"
   );
