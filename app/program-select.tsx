@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const DAY_GROUPS = [2, 3, 4, 5, 6];
+const DAY_GROUPS = [4];
 
 export default function ProgramSelectScreen() {
   const colors = useColors();
@@ -73,7 +73,7 @@ export default function ProgramSelectScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText style={[styles.intro, { color: colors.icon }]}>
-          Tous les programmes utilisent tes routines Push, Pull, Legs, Upper et Lower.
+          Basé sur tes routines Haut du corps A/B et Bas du corps A/B.
         </ThemedText>
 
         {DAY_GROUPS.map(days => {
