@@ -38,3 +38,7 @@ npm-debug.log*
 generate-icons.js
 templates/
 scripts/.translate-progress.json
+
+# Artefacts générés par les scripts de migration de données (Phase 0-4
+# migration source d'exercices) — reproductibles, ne pas versionner.
+.data-migration/

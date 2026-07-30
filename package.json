@@ -8,7 +8,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "audit:exercise-ids": "node ./scripts/audit-exercise-ids.js",
+    "test:migration": "node --experimental-strip-types --test 'scripts/test/**/*.test.*'"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

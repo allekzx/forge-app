@@ -1,6 +1,8 @@
 import { initialExercises } from '@/assets/data/generatedExercises';
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
+import { runExerciseCatalogMigration } from '@/services/exerciseMigration';
+import { checkExerciseIntegrity } from '@/services/exerciseIntegrity';
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -587,21 +589,23 @@ const _doInit = async () => {
     );
   }
 
-  // Seed exercises si vide, trop peu (< 900) OU trop (> 950 = ancien dataset non filtré avec 1592 entrées)
-  const result = await database.getFirstAsync<{ count: number }>('SELECT count(*) as count FROM exercises WHERE is_custom = 0 OR is_custom IS NULL');
-  if (result && (result.count < 900 || result.count > 950)) {
-    await database.execAsync('DELETE FROM exercises WHERE is_custom IS NULL OR is_custom = 0');
-    // Batch insert (50 rows per execAsync) — far faster than 1500+ sequential runAsync on WASM
-    const esc = (s: string | null | undefined): string =>
-      s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`;
-    const CHUNK = 50;
-    for (let i = 0; i < initialExercises.length; i += CHUNK) {
-      const chunk = initialExercises.slice(i, i + CHUNK);
-      const vals = chunk.map(ex =>
-        `(${esc(ex.id)},${esc(ex.name)},${esc(ex.muscle)},${esc(ex.equipment)},${esc(ex.image ?? null)},${esc(ex.description ?? '')},${esc(ex.instructions ?? '')})`
-      ).join(',');
-      await database.execAsync(
-        `INSERT OR IGNORE INTO exercises (id,name,muscle,equipment,image,description,instructions) VALUES ${vals};`
+  // Seed/màj du catalogue d'exercices — migration additive et versionnée
+  // (upsert par id, jamais de DELETE en masse) : voir services/exerciseMigration.ts.
+  // Remplace l'ancienne heuristique par comptage (< 900 || > 950), qui aurait
+  // supprimé et réinséré TOUT le catalogue — donc cassé le lien exercise_id
+  // avec l'historique/les templates — dès que la source de données change.
+  const EXERCISE_DATASET_VERSION = 1;
+  await runExerciseCatalogMigration(database, {
+    newExercises: initialExercises,
+    targetVersion: EXERCISE_DATASET_VERSION,
+  });
+
+  if (__DEV__) {
+    const integrity = await checkExerciseIntegrity(database);
+    if (!integrity.ok) {
+      console.warn(
+        `[DatabaseService] Intégrité exercices: ${integrity.totalOrphanRows} ligne(s) orpheline(s)`,
+        integrity.orphanGroups
       );
     }
   }
