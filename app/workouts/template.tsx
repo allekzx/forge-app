@@ -25,6 +25,7 @@ import {
   WorkoutTemplateExercise,
   addTemplateExerciseSet,
   deleteTemplate,
+  deleteTemplateExercise,
   deleteTemplateExerciseSet,
   getActiveWorkout,
   getTemplateExerciseSets,
@@ -130,6 +131,29 @@ export default function WorkoutTemplateScreen() {
       ...prev,
       [exerciseId]: prev[exerciseId]?.filter(s => s.id !== setId) ?? [],
     }));
+  };
+
+  const handleDeleteExercise = (exerciseId: string, exerciseName: string) => {
+    Alert.alert(
+      'Retirer l\'exercice',
+      `Retirer "${exerciseName}" de cette routine ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Retirer',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteTemplateExercise(exerciseId);
+            setTemplate(prev => prev ? { ...prev, exercises: prev.exercises.filter(e => e.id !== exerciseId) } : prev);
+            setExerciseSets(prev => {
+              const next = { ...prev };
+              delete next[exerciseId];
+              return next;
+            });
+          },
+        },
+      ]
+    );
   };
 
   const handleStart = async () => {
@@ -277,6 +301,7 @@ export default function WorkoutTemplateScreen() {
               screenWidth={screenWidth}
               onMoveUp={() => handleMoveExercise(item.id, 'up')}
               onMoveDown={() => handleMoveExercise(item.id, 'down')}
+              onDeleteExercise={() => handleDeleteExercise(item.id, item.name)}
               onAddSet={() => handleAddSet(item.id)}
               onDeleteSet={(setId) => handleDeleteSet(setId, item.id)}
               onSetTypeTap={(setId, currentType) => setSetTypePicker({ setId, currentType, exerciseId: item.id })}
@@ -335,6 +360,7 @@ type ExerciseCardProps = {
   screenWidth: number;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onDeleteExercise: () => void;
   onAddSet: () => void;
   onDeleteSet: (setId: string) => void;
   onSetTypeTap: (setId: string, currentType: string) => void;
@@ -344,7 +370,7 @@ type ExerciseCardProps = {
 
 function ExerciseCard({
   exercise, sets, isFirst, isLast, colors, screenWidth,
-  onMoveUp, onMoveDown, onAddSet, onDeleteSet, onSetTypeTap, onRepsChange, onRestChange,
+  onMoveUp, onMoveDown, onDeleteExercise, onAddSet, onDeleteSet, onSetTypeTap, onRepsChange, onRestChange,
 }: ExerciseCardProps) {
   // Compute available width for inputs: screen - list padding (32) - card padding (28) - badge (44) - delete (36) - gaps (3×8=24)
   const inputWidth = Math.max(48, Math.floor((screenWidth - 32 - 28 - 44 - 36 - 24) / 2));
@@ -385,6 +411,14 @@ function ExerciseCard({
             <IconSymbol name="chevron.down" size={16} color={isLast ? colors.icon + '40' : colors.icon} />
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          onPress={onDeleteExercise}
+          style={s.deleteExerciseBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={`Retirer ${exercise.name} de la routine`}
+        >
+          <IconSymbol name="trash" size={16} color="#EF4444" />
+        </TouchableOpacity>
       </View>
 
       {/* Column headers */}
@@ -612,6 +646,11 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   reorderBtnDisabled: {},
+  deleteExerciseBtn: {
+    width: 36, height: 36,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
 
   // Column headers
   colHeaders: {

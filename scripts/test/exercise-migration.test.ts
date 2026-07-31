@@ -194,3 +194,63 @@ test('scénario complet : migration + intégrité restent cohérentes avec templ
   );
   assert.equal(templateEx?.exercise_id, 'Barbell_Squat');
 });
+
+test('runExerciseCatalogMigration: upsert par lots (execAsync) — correct sur des frontières de chunk non alignées', async () => {
+  // CHUNK vaut 50 dans l'implémentation : 130 lignes couvre 2 lots pleins
+  // + 1 lot partiel, pour vérifier qu'aucune ligne n'est perdue/dupliquée
+  // au niveau des bornes.
+  const { adapter } = makeDb();
+  const many: CatalogExercise[] = Array.from({ length: 130 }, (_, i) => ({
+    id: `ex_${i}`,
+    name: `Exercise ${i}`,
+    muscle: 'Chest',
+    equipment: 'Barbell',
+  }));
+
+  const result = await runExerciseCatalogMigration(adapter, { newExercises: many, targetVersion: 1 });
+  assert.equal(result.upserted, 130);
+
+  const rows = await adapter.getAllAsync<{ id: string }>('SELECT id FROM exercises');
+  assert.equal(rows.length, 130);
+  const ids = new Set(rows.map(r => r.id));
+  for (let i = 0; i < 130; i++) assert.ok(ids.has(`ex_${i}`), `ex_${i} manquant`);
+});
+
+test('runExerciseCatalogMigration: échappe correctement apostrophes, accents et retours à la ligne (SQL construit à la main)', async () => {
+  const { adapter } = makeDb();
+  const tricky: CatalogExercise = {
+    id: 'Farmer_s_Walk',
+    name: "Farmer's Walk",
+    muscle: 'Forearms',
+    equipment: 'Dumbbell',
+    description: 'Étape 1 : saisis les haltères.\nÉtape 2 : marche droit.',
+    instructions: "Garde le dos droit ; ne courbe pas l'épaule.",
+  };
+
+  await runExerciseCatalogMigration(adapter, { newExercises: [tricky], targetVersion: 1 });
+
+  const row = await adapter.getFirstAsync<{ name: string; description: string; instructions: string }>(
+    'SELECT name, description, instructions FROM exercises WHERE id = ?', 'Farmer_s_Walk'
+  );
+  assert.equal(row?.name, "Farmer's Walk");
+  assert.equal(row?.description, 'Étape 1 : saisis les haltères.\nÉtape 2 : marche droit.');
+  assert.equal(row?.instructions, "Garde le dos droit ; ne courbe pas l'épaule.");
+});
+
+test('runExerciseCatalogMigration: suppression d\'orphelins également par lots au-delà d\'un chunk', async () => {
+  const { adapter } = makeDb();
+  // 60 exercices "stale" (absents du nouveau catalogue, jamais utilisés) —
+  // couvre un lot plein (50) + un lot partiel (10) côté suppression.
+  for (let i = 0; i < 60; i++) {
+    await adapter.runAsync(
+      'INSERT INTO exercises (id, name, muscle, equipment, is_custom) VALUES (?, ?, ?, ?, 0)',
+      `stale_${i}`, `Stale ${i}`, 'Chest', 'Barbell'
+    );
+  }
+
+  const result = await runExerciseCatalogMigration(adapter, { newExercises: SAMPLE_CATALOG, targetVersion: 1 });
+  assert.equal(result.deletedOrphanFree, 60);
+
+  const remaining = await adapter.getAllAsync<{ id: string }>("SELECT id FROM exercises WHERE id LIKE 'stale_%'");
+  assert.equal(remaining.length, 0);
+});

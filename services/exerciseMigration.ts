@@ -109,11 +109,30 @@ export async function runExerciseCatalogMigration(
 
   // Upsert : jamais de suppression en masse. L'id, s'il existe déjà, est
   // conservé — c'est la clé de liaison avec l'historique/les templates.
+  //
+  // Groupé par lots via execAsync (comme l'ancien seed) plutôt qu'un
+  // runAsync paramétré par ligne : sur le backend web (SQLite WASM +
+  // Worker), chaque runAsync est un aller-retour postMessage séparé —
+  // 936 lignes une par une prenait plusieurs dizaines de secondes et
+  // laissait l'app bloquée sur un écran vide sans la moindre erreur
+  // (measured: ~40 lignes/s). Le contenu vient du catalogue interne
+  // (assets/data/generatedExercises.ts, pas d'saisie utilisateur), donc
+  // l'échappement manuel — déjà utilisé par l'ancien code — reste sûr ici.
+  const esc = (s: string | null | undefined): string =>
+    s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`;
+  const CHUNK = 50;
   let upserted = 0;
-  for (const ex of newExercises) {
-    await db.runAsync(
+  for (let i = 0; i < newExercises.length; i += CHUNK) {
+    const chunk = newExercises.slice(i, i + CHUNK);
+    const vals = chunk
+      .map(
+        ex =>
+          `(${esc(ex.id)},${esc(ex.name)},${esc(ex.muscle)},${esc(ex.equipment)},${esc(ex.image ?? null)},${esc(ex.description ?? '')},${esc(ex.instructions ?? '')},0,${esc(ex.source ?? null)},${esc(ex.sourceId ?? null)})`
+      )
+      .join(',');
+    await db.execAsync(
       `INSERT INTO exercises (id, name, muscle, equipment, image, description, instructions, is_custom, source, source_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+       VALUES ${vals}
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name,
          muscle = excluded.muscle,
@@ -123,18 +142,9 @@ export async function runExerciseCatalogMigration(
          instructions = excluded.instructions,
          source = excluded.source,
          source_id = excluded.source_id
-       WHERE exercises.is_custom = 0 OR exercises.is_custom IS NULL`,
-      ex.id,
-      ex.name,
-      ex.muscle,
-      ex.equipment,
-      ex.image ?? null,
-      ex.description ?? '',
-      ex.instructions ?? '',
-      ex.source ?? null,
-      ex.sourceId ?? null
+       WHERE exercises.is_custom = 0 OR exercises.is_custom IS NULL;`
     );
-    upserted++;
+    upserted += chunk.length;
   }
 
   // Nettoyage des orphelins SÛRS uniquement : un id catalogue absent du
@@ -150,14 +160,17 @@ export async function runExerciseCatalogMigration(
   let keptLegacyInUse = 0;
   if (staleIds.length) {
     const idsInUse = await getIdsInUse(db);
-    for (const id of staleIds) {
-      if (idsInUse.has(id)) {
-        keptLegacyInUse++;
-      } else {
-        await db.runAsync('DELETE FROM exercises WHERE id = ? AND (is_custom = 0 OR is_custom IS NULL)', id);
-        deletedOrphanFree++;
-      }
+    const toDelete = staleIds.filter(id => !idsInUse.has(id));
+    keptLegacyInUse = staleIds.length - toDelete.length;
+    // Batché par lots (même raison que l'upsert ci-dessus : éviter un
+    // aller-retour Worker par id à supprimer).
+    for (let i = 0; i < toDelete.length; i += CHUNK) {
+      const chunk = toDelete.slice(i, i + CHUNK);
+      await db.execAsync(
+        `DELETE FROM exercises WHERE (is_custom = 0 OR is_custom IS NULL) AND id IN (${chunk.map(esc).join(',')});`
+      );
     }
+    deletedOrphanFree = toDelete.length;
   }
 
   await setMigrationVersion(db, targetVersion);

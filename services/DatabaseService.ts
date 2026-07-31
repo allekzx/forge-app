@@ -1298,6 +1298,16 @@ export const deleteTemplateExerciseSet = async (setId: string): Promise<void> =>
   await database.runAsync('DELETE FROM template_exercise_sets WHERE id = ?', setId);
 };
 
+/** Retire un exercice (et tous ses sets) d'une routine — ne supprime pas la routine elle-même. */
+export const deleteTemplateExercise = async (templateExerciseId: string): Promise<void> => {
+  const database = await openDatabase();
+  await database.runAsync(
+    'DELETE FROM template_exercise_sets WHERE template_exercise_id = ?',
+    templateExerciseId
+  );
+  await database.runAsync('DELETE FROM workout_template_exercises WHERE id = ?', templateExerciseId);
+};
+
 export const updateTemplateExerciseSet = async (
   id: string,
   fields: { target_reps?: number; rest_seconds?: number }
