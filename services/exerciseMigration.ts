@@ -41,6 +41,7 @@ export type CatalogExercise = {
   muscle: string;
   equipment: string;
   image?: string | null;
+  gif?: string | null;
   description?: string | null;
   instructions?: string | null;
   source?: string | null;
@@ -60,12 +61,13 @@ const TABLES_WITH_EXERCISE_ID = [
   'workout_template_exercises',
 ] as const;
 
-/** Ajoute les colonnes `source`/`source_id` si elles n'existent pas encore (migration additive). */
+/** Ajoute les colonnes `source`/`source_id`/`gif` si elles n'existent pas encore (migration additive). */
 export async function ensureExerciseProvenanceColumns(db: CatalogDb): Promise<void> {
   const cols = await db.getAllAsync<{ name: string }>(`SELECT name FROM pragma_table_info('exercises')`);
   const names = new Set(cols.map(c => c.name));
   if (!names.has('source')) await db.execAsync('ALTER TABLE exercises ADD COLUMN source TEXT');
   if (!names.has('source_id')) await db.execAsync('ALTER TABLE exercises ADD COLUMN source_id TEXT');
+  if (!names.has('gif')) await db.execAsync('ALTER TABLE exercises ADD COLUMN gif TEXT');
 }
 
 async function getMigrationVersion(db: CatalogDb): Promise<number> {
@@ -127,17 +129,18 @@ export async function runExerciseCatalogMigration(
     const vals = chunk
       .map(
         ex =>
-          `(${esc(ex.id)},${esc(ex.name)},${esc(ex.muscle)},${esc(ex.equipment)},${esc(ex.image ?? null)},${esc(ex.description ?? '')},${esc(ex.instructions ?? '')},0,${esc(ex.source ?? null)},${esc(ex.sourceId ?? null)})`
+          `(${esc(ex.id)},${esc(ex.name)},${esc(ex.muscle)},${esc(ex.equipment)},${esc(ex.image ?? null)},${esc(ex.gif ?? null)},${esc(ex.description ?? '')},${esc(ex.instructions ?? '')},0,${esc(ex.source ?? null)},${esc(ex.sourceId ?? null)})`
       )
       .join(',');
     await db.execAsync(
-      `INSERT INTO exercises (id, name, muscle, equipment, image, description, instructions, is_custom, source, source_id)
+      `INSERT INTO exercises (id, name, muscle, equipment, image, gif, description, instructions, is_custom, source, source_id)
        VALUES ${vals}
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name,
          muscle = excluded.muscle,
          equipment = excluded.equipment,
          image = excluded.image,
+         gif = excluded.gif,
          description = excluded.description,
          instructions = excluded.instructions,
          source = excluded.source,

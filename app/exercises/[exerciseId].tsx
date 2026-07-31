@@ -1,3 +1,4 @@
+import exerciseGifMap from '@/assets/data/exerciseGifMap';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -16,6 +17,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -158,14 +160,19 @@ export default function ExerciseDetailScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-          {/* Hero header — colored by muscle group */}
+          {/* Hero header — gif de démonstration si disponible, sinon icône colorée par muscle */}
           {(() => {
             const accentColor = muscleAccentColor(exercise.muscle);
+            const gif = exercise.gif ? exerciseGifMap[exercise.gif] : null;
             return (
               <View style={[styles.heroHeader, { backgroundColor: accentColor + '18' }]}>
-                <View style={[styles.heroIconWrap, { backgroundColor: accentColor + '25' }]}>
-                  <IconSymbol name="dumbbell.fill" size={40} color={accentColor} />
-                </View>
+                {gif ? (
+                  <Image source={gif} style={styles.heroGif} resizeMode="contain" accessibilityLabel={`Démonstration : ${exercise.name}`} />
+                ) : (
+                  <View style={[styles.heroIconWrap, { backgroundColor: accentColor + '25' }]}>
+                    <IconSymbol name="dumbbell.fill" size={40} color={accentColor} />
+                  </View>
+                )}
                 <Text style={[styles.name, { color: colors.text }]}>{exercise.name}</Text>
                 <View style={styles.badges}>
                   <View style={[styles.badge, { backgroundColor: accentColor + '20' }]}>
@@ -276,6 +283,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
+  },
+  heroGif: {
+    width: 180,
+    height: 180,
+    borderRadius: 16,
     marginBottom: 4,
   },
   name: {

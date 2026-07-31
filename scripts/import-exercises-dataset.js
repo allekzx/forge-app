@@ -20,13 +20,19 @@
  *     - Pas de match  → nouvel exercice, id namespacé `hgd_<id>` (jamais de
  *       collision avec les slugs ou `wger_*` existants), muscle/equipment
  *       mappés vers la taxonomie de l'app.
- *  4. Écrire un fichier CANDIDAT (pas d'écrasement direct de
- *     generatedExercises.ts) + un rapport de diff, et ÉCHOUER si un id
- *     protégé (Phase 0, scripts/audit-exercise-ids.js) disparaît.
+ *  4. (optionnel, --download-media) Télécharge en local le jpg + le gif de
+ *     chaque exercice ayant une fiche source, dans assets/exercise_images/
+ *     et assets/exercise_gifs/, puis régénère les maps require() associées
+ *     (voir ATTRIBUTIONS.md pour la décision d'embarquer ces médias).
+ *  5. Écrit un fichier CANDIDAT par défaut (pas d'écrasement de
+ *     generatedExercises.ts), ou directement en production avec --promote.
+ *     Écrit aussi un rapport de diff, et ÉCHOUE si un id protégé
+ *     (Phase 0, scripts/audit-exercise-ids.js) disparaît.
  *
  * Run:
  *   node scripts/import-exercises-dataset.js --input /path/to/exercises.json
  *   node scripts/import-exercises-dataset.js            (fetch depuis GitHub)
+ *   node scripts/import-exercises-dataset.js --download-media --promote
  */
 
 const fs = require('fs');
@@ -36,12 +42,18 @@ const { loadInitialExercises, normName } = require('./lib/loadExerciseSource');
 
 const DATASET_RAW_URL =
   'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/data/exercises.json';
+const DATASET_MEDIA_BASE = 'https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/';
 
 const GENERATED_PATH = path.join(__dirname, '../assets/data/generatedExercises.ts');
 const AUDIT_PATH = path.join(__dirname, '../.data-migration/exercise-audit.json');
 const CANDIDATE_OUT_PATH = path.join(__dirname, '../.data-migration/generatedExercises.candidate.ts');
 const REPORT_OUT_PATH = path.join(__dirname, '../.data-migration/import-report.json');
+const IMAGE_DIR = path.join(__dirname, '../assets/exercise_images');
+const GIF_DIR = path.join(__dirname, '../assets/exercise_gifs');
+const IMAGE_MAP_PATH = path.join(__dirname, '../assets/data/exerciseImageMap.ts');
+const GIF_MAP_PATH = path.join(__dirname, '../assets/data/exerciseGifMap.ts');
 const ID_NAMESPACE = 'hgd_'; // "hasaneyldrm gym dataset" — namespace dédié, jamais utilisé ailleurs
+const DOWNLOAD_CONCURRENCY = 16;
 
 // ─── Mappings taxonomie (nouveau dataset → valeurs déjà utilisées par l'app) ──
 // Les valeurs de droite DOIVENT rester dans l'ensemble déjà consommé par
@@ -110,12 +122,17 @@ function mapEquipment(sourceEx) {
 }
 
 /**
- * Phase 3 — détecte tout chemin média du nouveau dataset (© Gym visual,
- * format `images/<id>-<mediaId>.jpg` / `videos/<id>-<mediaId>.gif`) qui se
- * serait glissé dans la sortie sans revue de licence. Voir ATTRIBUTIONS.md.
+ * Décision (voir ATTRIBUTIONS.md) : les médias © Gym visual du nouveau
+ * dataset sont téléchargés et embarqués localement (assets/exercise_images,
+ * assets/exercise_gifs), jamais référencés par une URL distante ou un
+ * chemin relatif au dépôt source (l'app doit fonctionner hors ligne).
+ * Ce garde-fou détecte toute valeur `image`/`gif` qui ressemblerait encore
+ * à un chemin distant (contient un `/` ou commence par `http`) — signe
+ * qu'un téléchargement a été oublié ou a échoué silencieusement.
  */
 function findLeakedMediaPaths(output) {
-  return output.filter(ex => ex.image && /^(images|videos)\//.test(ex.image));
+  const looksRemote = v => typeof v === 'string' && (v.includes('/') || /^https?:/i.test(v));
+  return output.filter(ex => looksRemote(ex.image) || looksRemote(ex.gif));
 }
 
 /**
@@ -183,6 +200,116 @@ function fetchJSON(url) {
   });
 }
 
+/** Télécharge un fichier binaire vers destPath, en suivant les redirections. Ne réécrit pas si déjà présent. */
+function downloadBinary(url, destPath) {
+  return new Promise(resolve => {
+    if (fs.existsSync(destPath) && fs.statSync(destPath).size > 0) {
+      resolve(true);
+      return;
+    }
+    https
+      .get(url, { headers: { 'User-Agent': 'ForgeApp/1.0 media-import' } }, res => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume();
+          downloadBinary(res.headers.location, destPath).then(resolve);
+          return;
+        }
+        if (res.statusCode !== 200) {
+          res.resume();
+          resolve(false);
+          return;
+        }
+        const file = fs.createWriteStream(destPath);
+        res.pipe(file);
+        file.on('finish', () => file.close(() => resolve(true)));
+        file.on('error', () => {
+          try { fs.unlinkSync(destPath); } catch { /* noop */ }
+          resolve(false);
+        });
+      })
+      .on('error', () => resolve(false));
+  });
+}
+
+/** Exécute `items` avec au plus `limit` tâches `worker` en vol simultanément. */
+async function runWithConcurrency(items, limit, worker) {
+  let cursor = 0;
+  const results = new Array(items.length);
+  async function runOne() {
+    while (cursor < items.length) {
+      const i = cursor++;
+      results[i] = await worker(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runOne));
+  return results;
+}
+
+/**
+ * Phase 3 (médias) — télécharge en local, pour chaque exercice qui a une
+ * fiche source (`sourceId`), le jpg (si absent) et le gif d'illustration du
+ * nouveau dataset. Le nom de fichier local est dérivé de l'id APP (jamais
+ * de l'id source), donc stable et sans collision avec les assets existants.
+ * Mute `output` en place (image/gif) et retourne des compteurs.
+ */
+async function downloadMedia(output, sourceById) {
+  fs.mkdirSync(IMAGE_DIR, { recursive: true });
+  fs.mkdirSync(GIF_DIR, { recursive: true });
+
+  const withSource = output.filter(ex => ex.sourceId && sourceById.has(ex.sourceId));
+  console.log(`\nTéléchargement des médias pour ${withSource.length} exercice(s)...`);
+
+  let imagesDownloaded = 0;
+  let gifsDownloaded = 0;
+  let failures = 0;
+  let done = 0;
+
+  await runWithConcurrency(withSource, DOWNLOAD_CONCURRENCY, async ex => {
+    const sourceEx = sourceById.get(ex.sourceId);
+
+    if (!ex.image && sourceEx.image) {
+      const filename = `${ex.id}.jpg`;
+      const ok = await downloadBinary(DATASET_MEDIA_BASE + sourceEx.image, path.join(IMAGE_DIR, filename));
+      if (ok) { ex.image = filename; imagesDownloaded++; } else { failures++; }
+    }
+
+    if (!ex.gif && sourceEx.gif_url) {
+      const filename = `${ex.id}.gif`;
+      const ok = await downloadBinary(DATASET_MEDIA_BASE + sourceEx.gif_url, path.join(GIF_DIR, filename));
+      if (ok) { ex.gif = filename; gifsDownloaded++; } else { failures++; }
+    }
+
+    done++;
+    if (done % 100 === 0 || done === withSource.length) {
+      process.stdout.write(`  ${done}/${withSource.length} traités (${imagesDownloaded} jpg, ${gifsDownloaded} gif, ${failures} échecs)\r\n`);
+    }
+  });
+
+  return { imagesDownloaded, gifsDownloaded, failures };
+}
+
+/** Régénère assets/data/exerciseImageMap.ts et exerciseGifMap.ts depuis le contenu réel des dossiers d'assets. */
+function regenerateMediaMaps() {
+  const buildMap = (dir, mapPath, aliasDir) => {
+    const files = fs.existsSync(dir)
+      ? fs.readdirSync(dir).filter(f => /\.(jpg|jpeg|png|gif)$/i.test(f)).sort()
+      : [];
+    const content =
+      `import { ImageSourcePropType } from 'react-native';\n\n` +
+      `// Généré par scripts/import-exercises-dataset.js --download-media — ne pas éditer à la main.\n` +
+      `const map: Record<string, ImageSourcePropType> = {\n` +
+      files.map(f => `  ${JSON.stringify(f)}: require(${JSON.stringify(`${aliasDir}/${f}`)}),`).join('\n') +
+      `\n};\n\nexport default map;\n`;
+    fs.writeFileSync(mapPath, content, 'utf-8');
+    return files.length;
+  };
+
+  const imageCount = buildMap(IMAGE_DIR, IMAGE_MAP_PATH, '@/assets/exercise_images');
+  const gifCount = buildMap(GIF_DIR, GIF_MAP_PATH, '@/assets/exercise_gifs');
+  console.log(`✓ exerciseImageMap.ts régénéré (${imageCount} images)`);
+  console.log(`✓ exerciseGifMap.ts régénéré (${gifCount} gifs)`);
+}
+
 async function loadNewDataset() {
   const inputArgIdx = process.argv.indexOf('--input');
   if (inputArgIdx !== -1 && process.argv[inputArgIdx + 1]) {
@@ -231,6 +358,19 @@ async function main() {
   for (const customId of audit.customSeedIds) idsExpectedInCatalogFile.delete(customId);
 
   const currentCatalog = loadInitialExercises(GENERATED_PATH);
+
+  // Le script n'est PAS idempotent face à sa propre sortie : le relancer sur
+  // un catalogue déjà promu (--promote) réutiliserait les entrées hgd_* déjà
+  // fusionnées comme "catalogue actuel", les ferait re-matcher le dataset,
+  // et produirait des ids en double. On détecte ce cas et on arrête net.
+  if (currentCatalog.some(ex => ex.source === 'hasaneyldrm/exercises-dataset')) {
+    console.error(
+      `✗ ${GENERATED_PATH} contient déjà des entrées fusionnées (source: hasaneyldrm/exercises-dataset).\n` +
+      `  Ce script attend le catalogue D'AVANT la fusion. Restaure-le d'abord (ex: git checkout -- ${path.relative(process.cwd(), GENERATED_PATH)}) avant de relancer.`
+    );
+    process.exit(1);
+  }
+
   const exactIndex = buildMatchIndex(currentCatalog);
 
   const newDataset = await loadNewDataset();
@@ -259,6 +399,7 @@ async function main() {
         muscle: match.muscle,
         equipment: match.equipment,
         image: match.image,
+        gif: match.gif ?? null,
         description: resolved.description,
         instructions: resolved.instructions,
         source: 'hasaneyldrm/exercises-dataset',
@@ -273,7 +414,8 @@ async function main() {
         name: titleCase(sourceEx.name),
         muscle: mapMuscle(sourceEx),
         equipment: mapEquipment(sourceEx),
-        image: null, // Phase 3 tranchera la question des médias/attribution
+        image: null, // rempli par --download-media
+        gif: null, // rempli par --download-media
         description: fr ? fr.description : '',
         instructions: fr ? fr.instructions : '',
         source: 'hasaneyldrm/exercises-dataset',
@@ -295,12 +437,21 @@ async function main() {
         muscle: ex.muscle,
         equipment: ex.equipment,
         image: ex.image,
+        gif: ex.gif ?? null,
         description: ex.description,
         instructions: ex.instructions,
         source: 'legacy',
         sourceId: null,
       });
     }
+  }
+
+  // ─── Téléchargement des médias (jpg + gif) ────────────────────────────────
+  let mediaStats = null;
+  if (process.argv.includes('--download-media')) {
+    const sourceById = new Map(newDataset.map(e => [e.id, e]));
+    mediaStats = await downloadMedia(output, sourceById);
+    regenerateMediaMaps();
   }
 
   // ─── Validation : aucun id protégé ne doit disparaître ───────────────────
@@ -316,14 +467,15 @@ async function main() {
   }
 
   // ─── Phase 3 : garde-fou attribution médias ──────────────────────────────
-  // Décision : les images/gifs © Gym visual du nouveau dataset ne sont PAS
-  // embarquées tant qu'une revue de licence explicite n'a pas été faite
-  // (voir ATTRIBUTIONS.md). On vérifie ici, mécaniquement, qu'aucun chemin
-  // `images/…`/`videos/…` du nouveau dataset ne s'est glissé dans la sortie —
-  // filet de sécurité si le mapping venait à changer plus tard par erreur.
+  // Décision (voir ATTRIBUTIONS.md) : les images/gifs © Gym visual sont
+  // téléchargées et embarquées localement (--download-media), avec mention
+  // d'attribution dans l'app (Paramètres → À propos). On vérifie ici,
+  // mécaniquement, qu'aucune valeur `image`/`gif` ne ressemble encore à un
+  // chemin ou une URL distante — signe d'un téléchargement manqué.
   const leakedMediaPaths = findLeakedMediaPaths(output);
   const withImage = output.filter(ex => ex.image).length;
   const withoutImage = output.length - withImage;
+  const withGif = output.filter(ex => ex.gif).length;
 
   // ─── Phase 4 : garde-fou instructions FR ─────────────────────────────────
   // Un exercice nouvellement ajouté (id hgd_*) ne devrait jamais rester sans
@@ -344,10 +496,12 @@ async function main() {
     outputCount: output.length,
     withImage,
     withoutImage,
+    withGif,
+    mediaStats,
     newWithoutInstructions,
     missingProtectedIds,
     duplicateIds,
-    leakedMediaPaths: leakedMediaPaths.map(e => ({ id: e.id, image: e.image })),
+    leakedMediaPaths: leakedMediaPaths.map(e => ({ id: e.id, image: e.image, gif: e.gif })),
     unmatchedSample,
   };
   fs.mkdirSync(path.dirname(REPORT_OUT_PATH), { recursive: true });
@@ -358,8 +512,9 @@ async function main() {
   console.log(`Nouveaux (id ${ID_NAMESPACE}*)          : ${added}`);
   console.log(`Conservés sans match (legacy) : ${carriedOverUnmatched}`);
   console.log(`Total sortie                  : ${output.length}`);
-  console.log(`Avec image (héritée)          : ${withImage}`);
-  console.log(`Sans image (en attente Phase 3) : ${withoutImage}`);
+  console.log(`Avec image                    : ${withImage}`);
+  console.log(`Sans image                    : ${withoutImage}`);
+  console.log(`Avec gif                      : ${withGif}`);
   console.log(`Enrichis en FR (existants, étaient vides) : ${enrichedExisting}`);
   console.log(`Nouveaux sans instructions FR : ${newWithoutInstructions}`);
 
@@ -381,28 +536,61 @@ async function main() {
     process.exit(1);
   }
 
-  const rows = output
-    .map(
-      ex => `  {
+  const toRow = ex => `  {
     id: ${JSON.stringify(ex.id)},
     name: ${JSON.stringify(ex.name)},
     muscle: ${JSON.stringify(ex.muscle)},
     equipment: ${JSON.stringify(ex.equipment)},
     image: ${ex.image ? JSON.stringify(ex.image) : 'null'},
+    gif: ${ex.gif ? JSON.stringify(ex.gif) : 'null'},
     description: ${JSON.stringify(ex.description)},
     instructions: ${JSON.stringify(ex.instructions)},
     source: ${JSON.stringify(ex.source)},
     sourceId: ${ex.sourceId ? JSON.stringify(ex.sourceId) : 'null'},
-  }`
-    )
-    .join(',\n');
+  }`;
 
-  fs.writeFileSync(CANDIDATE_OUT_PATH, `\nexport const initialExercises = [\n${rows}\n];\n`);
+  const promote = process.argv.includes('--promote');
+  const outPath = promote ? GENERATED_PATH : CANDIDATE_OUT_PATH;
 
-  console.log(`\n✓ Fichier candidat écrit : ${CANDIDATE_OUT_PATH}`);
-  console.log(`✓ Rapport écrit : ${REPORT_OUT_PATH}`);
-  console.log(`\n(Ce fichier candidat ne remplace PAS encore assets/data/generatedExercises.ts —`);
-  console.log(` la promotion en production est une étape manuelle distincte, après review.)`);
+  const typeDecl = `export type ExerciseSeed = {
+  id: string;
+  name: string;
+  muscle: string;
+  equipment: string;
+  image: string | null;
+  gif: string | null;
+  description: string;
+  instructions: string;
+  source: string;
+  sourceId: string | null;
+};\n`;
+
+  // Découpé en lots typés (const partN: ExerciseSeed[] = [...]) puis
+  // concaténés, plutôt qu'un seul littéral de 2000+ objets : TypeScript
+  // échoue à typer un littéral aussi gros en un bloc ("Expression produces
+  // a union type that is too complex to represent"), que ce soit via une
+  // annotation sur la variable ou une assertion `as`. Des lots plus petits
+  // restent sous son budget de complexité ; la concaténation de tableaux
+  // déjà typés, elle, est triviale à vérifier.
+  const CHUNK_FOR_TS = 200;
+  const parts = [];
+  for (let i = 0; i < output.length; i += CHUNK_FOR_TS) {
+    const chunk = output.slice(i, i + CHUNK_FOR_TS);
+    parts.push(`const part${parts.length}: ExerciseSeed[] = [\n${chunk.map(toRow).join(',\n')}\n];`);
+  }
+  const partNames = parts.map((_, i) => `...part${i}`).join(', ');
+  const body = `\n${typeDecl}\n${parts.join('\n\n')}\n\nexport const initialExercises: ExerciseSeed[] = [${partNames}];\n`;
+
+  fs.writeFileSync(outPath, body);
+
+  console.log(`\n✓ Rapport écrit : ${REPORT_OUT_PATH}`);
+  if (promote) {
+    console.log(`✓ Catalogue promu en production : ${outPath}`);
+  } else {
+    console.log(`✓ Fichier candidat écrit : ${outPath}`);
+    console.log(`\n(Ce fichier candidat ne remplace PAS encore assets/data/generatedExercises.ts —`);
+    console.log(` relance avec --promote pour l'écrire directement en production.)`);
+  }
 }
 
 if (require.main === module) {
@@ -421,6 +609,7 @@ module.exports = {
   findLeakedMediaPaths,
   extractFrenchInstructions,
   resolveMatchedContent,
+  runWithConcurrency,
   TARGET_TO_MUSCLE,
   EQUIPMENT_MAP,
 };

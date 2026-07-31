@@ -594,7 +594,9 @@ const _doInit = async () => {
   // Remplace l'ancienne heuristique par comptage (< 900 || > 950), qui aurait
   // supprimé et réinséré TOUT le catalogue — donc cassé le lien exercise_id
   // avec l'historique/les templates — dès que la source de données change.
-  const EXERCISE_DATASET_VERSION = 1;
+  // v2 : catalogue fusionné avec hasaneyldrm/exercises-dataset (2129 exercices,
+  // gifs d'illustration) — voir ATTRIBUTIONS.md.
+  const EXERCISE_DATASET_VERSION = 2;
   await runExerciseCatalogMigration(database, {
     newExercises: initialExercises,
     targetVersion: EXERCISE_DATASET_VERSION,
@@ -730,6 +732,7 @@ export type ExerciseDetail = {
   muscle: string;
   equipment: string;
   image: string | null;
+  gif: string | null;
   description: string | null;
   instructions: string | null;
 };
@@ -737,7 +740,7 @@ export type ExerciseDetail = {
 export const getExerciseById = async (id: string): Promise<ExerciseDetail | null> => {
   const database = await openDatabase();
   return await database.getFirstAsync<ExerciseDetail>(
-    'SELECT id, name, muscle, equipment, image, description, instructions FROM exercises WHERE id = ?',
+    'SELECT id, name, muscle, equipment, image, gif, description, instructions FROM exercises WHERE id = ?',
     id
   ) ?? null;
 };

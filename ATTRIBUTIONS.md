@@ -1,13 +1,15 @@
 # Attributions — données et médias d'exercices
 
 Ce document trace la provenance des données d'exercices utilisées par
-l'application (catalogue `assets/data/generatedExercises.ts` et images dans
-`assets/exercise_images/`), dans le cadre de la migration vers une seconde
-source de données.
+l'application (catalogue `assets/data/generatedExercises.ts`, images dans
+`assets/exercise_images/`, gifs dans `assets/exercise_gifs/`), après la
+migration fusionnant une seconde source de données (catalogue final :
+2129 exercices — 936 historiques + 1193 nouveaux).
 
-## Source historique (actuelle)
+## Source historique
 
-Le catalogue actuel (936 exercices) provient d'un import fusionnant :
+Le catalogue historique (936 exercices, avant fusion) provenait d'un import
+fusionnant :
 - l'API [wger](https://wger.de/) (`scripts/import-wger-exercises.js`) —
   contenu sous licence libre, voir la documentation wger ;
 - un jeu de données d'exercices avec images (communément appelé
@@ -28,37 +30,41 @@ Repo : https://github.com/hasaneyldrm/exercises-dataset
 | Données JSON (`data/exercises.json`) | MIT                                              |
 | Images (`images/`) et vidéos/gifs (`videos/`) | © Gym visual — https://gymvisual.com/ — réutilisation autorisée sous réserve de conserver l'attribution et de respecter leurs CGU |
 
-### Décision (Phase 3 de la migration)
+### Décision (mise à jour — médias importés)
 
-**Les médias (images/gifs) de ce nouveau dataset ne sont PAS importés dans
-l'application** tant qu'une revue explicite des CGU de Gym visual (usage
-commercial, format d'attribution requis dans l'app) n'a pas été faite et
-validée.
+**Décision produit validée avec l'utilisateur** : les médias (images fixes +
+gifs animés) du nouveau dataset sont téléchargés et embarqués localement
+dans l'app, pour rester utilisables hors ligne (contrainte cœur du projet —
+pas de réseau disponible en salle de sport). Impact bundle : ~60 Mo
+d'images (`assets/exercise_images/`, 2067 fichiers) + ~126 Mo de gifs
+(`assets/exercise_gifs/`, 1324 fichiers).
 
-En conséquence, `scripts/import-exercises-dataset.js` :
-- conserve l'image existante pour tout exercice déjà présent dans le
-  catalogue (matché par nom) — aucune régression, aucun changement de
-  média ;
-- laisse `image: null` pour tout exercice nouvellement ajouté depuis ce
-  dataset (ids `hgd_*`) ;
-- ne copie jamais un champ `image`/`gif_url` du nouveau dataset dans le
-  catalogue de l'app ;
-- échoue (`leakedMediaPaths` dans le rapport JSON) si un chemin
-  `images/…` ou `videos/…` propre à ce dataset apparaissait malgré tout en
-  sortie — garde-fou mécanique en cas de modification future du script.
+En contrepartie de la clause d'attribution de la licence Gym visual, une
+mention est affichée dans l'app : Paramètres → À propos →
+« Images et animations d'exercices © Gym visual — gymvisual.com ».
 
-Seuls les champs texte (nom, muscle, équipement, instructions) de ce
-dataset sont exploités (voir aussi la Phase 4 : instructions en français
-natif).
+`scripts/import-exercises-dataset.js --download-media` :
+- télécharge le jpg (si l'exercice n'en a pas déjà un hérité) et le gif de
+  chaque exercice ayant une fiche source dans le nouveau dataset (matché ou
+  nouveau), sous un nom de fichier local dérivé de l'id APP (jamais de
+  l'id de la source) ;
+- régénère `assets/data/exerciseImageMap.ts` et `assets/data/exerciseGifMap.ts`
+  (maps `require()` scannées depuis le contenu réel des dossiers d'assets) ;
+- ne laisse jamais passer une valeur `image`/`gif` qui ressemble encore à un
+  chemin ou une URL distante (`findLeakedMediaPaths`) — signe d'un
+  téléchargement manqué, plutôt qu'un choix éditorial de ne pas embarquer.
 
-### Si l'équipe décide plus tard d'importer les médias
+Rendu dans l'app :
+- `app/exercises/[exerciseId].tsx` : le gif remplace l'icône placeholder
+  dans le hero header de la fiche exercice quand disponible.
+- `app/(tabs)/exercises.tsx` et `app/workouts/exercise-picker.tsx` : la
+  vignette jpg (statique, pas le gif — évite d'animer des dizaines
+  d'entrées simultanément dans une liste) remplace l'icône placeholder.
 
-1. Valider les CGU de gymvisual.com pour l'usage prévu (app payante/gratuite,
-   store, etc.).
-2. Ajouter une mention d'attribution visible dans l'app (ex: écran
-   "À propos" / Paramètres) : `Images d'exercices © Gym visual — gymvisual.com`.
-3. Étendre `scripts/import-exercises-dataset.js` pour télécharger
-   `images/`/`videos/` vers `assets/exercise_images/` et mettre à jour
-   `assets/data/exerciseImageMap.ts` en conséquence.
-4. Retirer/adapter le garde-fou `findLeakedMediaPaths` en accord avec la
-   nouvelle politique.
+### Points de vigilance restants
+
+- La licence précise des ~60 Mo d'images historiques (source "yuhonas",
+  voir plus haut) n'a toujours pas été revérifiée formellement.
+- Avant une publication sur les stores, revalider que la mention
+  d'attribution dans Paramètres satisfait les CGU actuelles de
+  gymvisual.com (elles peuvent évoluer).

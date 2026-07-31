@@ -218,6 +218,16 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* À propos */}
+        <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>À PROPOS</ThemedText>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <View style={styles.row}>
+            <ThemedText style={[styles.attributionText, { color: colors.icon }]}>
+              Images et animations d&apos;exercices © Gym visual — gymvisual.com
+            </ThemedText>
+          </View>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -272,6 +282,10 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 15,
     fontWeight: '500',
+  },
+  attributionText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   textInput: {
     fontSize: 15,

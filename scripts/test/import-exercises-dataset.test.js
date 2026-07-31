@@ -20,6 +20,7 @@ const {
   findLeakedMediaPaths,
   extractFrenchInstructions,
   resolveMatchedContent,
+  runWithConcurrency,
   TARGET_TO_MUSCLE,
   EQUIPMENT_MAP,
 } = require('../import-exercises-dataset');
@@ -85,22 +86,23 @@ test('buildMatchIndex: garde la première entrée en cas de doublon de nom dans 
   assert.equal(findMatch('duplicate name', index).id, 'first');
 });
 
-test('findLeakedMediaPaths (Phase 3) : détecte un chemin média du nouveau dataset non revu pour licence', () => {
+test('findLeakedMediaPaths (Phase 3) : détecte un chemin/URL distant non téléchargé (image ou gif)', () => {
   const output = [
-    { id: 'Barbell_Squat', image: 'Barbell_Squat.jpg' }, // image héritée, OK
-    { id: 'hgd_0042', image: null },                      // pas d'image, OK
-    { id: 'hgd_0099', image: 'images/0099-Ab12Cd.jpg' },   // chemin © Gym visual — doit être détecté
-    { id: 'hgd_0100', image: 'videos/0100-Ef34Gh.gif' },   // idem pour les gifs
+    { id: 'Barbell_Squat', image: 'Barbell_Squat.jpg', gif: null },       // local, OK
+    { id: 'hgd_0042', image: null, gif: null },                           // rien, OK
+    { id: 'hgd_0099', image: 'images/0099-Ab12Cd.jpg', gif: null },       // chemin relatif au dataset — pas téléchargé
+    { id: 'hgd_0100', image: null, gif: 'videos/0100-Ef34Gh.gif' },       // idem côté gif
+    { id: 'hgd_0101', image: 'https://example.com/x.jpg', gif: null },   // URL distante en dur
   ];
   const leaked = findLeakedMediaPaths(output);
-  assert.deepEqual(leaked.map(e => e.id).sort(), ['hgd_0099', 'hgd_0100']);
+  assert.deepEqual(leaked.map(e => e.id).sort(), ['hgd_0099', 'hgd_0100', 'hgd_0101']);
 });
 
-test('findLeakedMediaPaths (Phase 3) : aucun faux positif sur les images du catalogue actuel', () => {
+test('findLeakedMediaPaths (Phase 3) : aucun faux positif sur des noms de fichiers locaux plats (image + gif)', () => {
   const output = [
-    { id: 'a', image: 'Barbell_Squat.jpg' },
-    { id: 'b', image: 'Reverse_Barbell_Curl.jpg' },
-    { id: 'c', image: null },
+    { id: 'a', image: 'Barbell_Squat.jpg', gif: 'Barbell_Squat.gif' },
+    { id: 'b', image: 'Reverse_Barbell_Curl.jpg', gif: null },
+    { id: 'c', image: null, gif: null },
   ];
   assert.deepEqual(findLeakedMediaPaths(output), []);
 });
@@ -151,4 +153,35 @@ test('resolveMatchedContent (Phase 4) : reste vide si le dataset source n\'a pas
   assert.equal(result.wasEnriched, false);
   assert.equal(result.description, '');
   assert.equal(result.instructions, '');
+});
+
+test('runWithConcurrency: traite tous les items exactement une fois, dans l\'ordre des résultats', async () => {
+  const items = Array.from({ length: 37 }, (_, i) => i);
+  let maxInFlight = 0;
+  let inFlight = 0;
+  const seen = [];
+
+  const results = await runWithConcurrency(items, 5, async n => {
+    inFlight++;
+    maxInFlight = Math.max(maxInFlight, inFlight);
+    await new Promise(r => setTimeout(r, 1));
+    seen.push(n);
+    inFlight--;
+    return n * 2;
+  });
+
+  assert.deepEqual(results, items.map(n => n * 2));
+  assert.equal(seen.length, 37);
+  assert.deepEqual([...seen].sort((a, b) => a - b), items);
+  assert.ok(maxInFlight <= 5, `attendu <= 5 en vol simultanément, obtenu ${maxInFlight}`);
+});
+
+test('runWithConcurrency: limite > nombre d\'items ne casse rien', async () => {
+  const results = await runWithConcurrency([1, 2, 3], 100, async n => n + 1);
+  assert.deepEqual(results, [2, 3, 4]);
+});
+
+test('runWithConcurrency: liste vide', async () => {
+  const results = await runWithConcurrency([], 5, async n => n);
+  assert.deepEqual(results, []);
 });

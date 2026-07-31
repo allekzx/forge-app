@@ -43,14 +43,19 @@ const MUSCLE_COLORS: Record<string, string> = {
 
 const ExerciseItem = React.memo(({ item, isSelected, colors, onPress }: ExerciseItemProps) => {
   const accentColor = MUSCLE_COLORS[item.muscle] ?? colors.tint;
+  const bundled = item.image ? exerciseImageMap[item.image] : null;
   return (
     <TouchableOpacity
       onPress={() => onPress(item.id)}
       style={[styles.itemContainer, { borderBottomColor: colors.card }]}
     >
-      <View style={[styles.itemImage, { backgroundColor: accentColor + '20', justifyContent: 'center', alignItems: 'center', borderRadius: 10 }]}>
-        <IconSymbol name="dumbbell.fill" size={22} color={accentColor} />
-      </View>
+      {bundled ? (
+        <Image source={bundled} style={styles.itemImage} resizeMode="cover" />
+      ) : (
+        <View style={[styles.itemImage, { backgroundColor: accentColor + '20', justifyContent: 'center', alignItems: 'center', borderRadius: 10 }]}>
+          <IconSymbol name="dumbbell.fill" size={22} color={accentColor} />
+        </View>
+      )}
       <View style={styles.itemInfo}>
         <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
         <Text style={[styles.itemSubtitle, { color: colors.icon }]}>{`${translateMuscle(item.muscle)} • ${translateEquipment(item.equipment)}`}</Text>
