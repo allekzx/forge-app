@@ -43,4 +43,21 @@ function normName(name) {
     .trim();
 }
 
-module.exports = { loadInitialExercises, normName };
+/**
+ * Similarité de Jaccard sur les ensembles de mots de deux noms normalisés
+ * (taille de l'intersection / taille de l'union). Ne comprend PAS la
+ * sémantique des mots — "seated"/"decline"/"standing" comptent comme des
+ * mots normaux, pas des variantes à ignorer. À combiner avec un seuil élevé
+ * et des critères additionnels (muscle, équipement) pour limiter les faux
+ * positifs (voir scripts/consolidate-duplicate-exercises.js).
+ */
+function jaccardWordSimilarity(nameA, nameB) {
+  const wordsA = new Set(normName(nameA).split(' ').filter(Boolean));
+  const wordsB = new Set(normName(nameB).split(' ').filter(Boolean));
+  if (!wordsA.size || !wordsB.size) return 0;
+  const intersectionSize = [...wordsA].filter(w => wordsB.has(w)).length;
+  const unionSize = new Set([...wordsA, ...wordsB]).size;
+  return intersectionSize / unionSize;
+}
+
+module.exports = { loadInitialExercises, normName, jaccardWordSimilarity };

@@ -596,7 +596,11 @@ const _doInit = async () => {
   // avec l'historique/les templates — dès que la source de données change.
   // v2 : catalogue fusionné avec hasaneyldrm/exercises-dataset (2129 exercices,
   // gifs d'illustration) — voir ATTRIBUTIONS.md.
-  const EXERCISE_DATASET_VERSION = 2;
+  // v3 : consolidation des doublons legacy/nouveau à très haute confiance
+  // (2129 -> 2070, voir scripts/consolidate-duplicate-exercises.js) — les
+  // ids legacy fusionnés adoptent le gif du doublon, qui est ensuite retiré
+  // du catalogue (nettoyage géré par le mécanisme d'orphelins existant).
+  const EXERCISE_DATASET_VERSION = 3;
   await runExerciseCatalogMigration(database, {
     newExercises: initialExercises,
     targetVersion: EXERCISE_DATASET_VERSION,
