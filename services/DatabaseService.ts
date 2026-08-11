@@ -93,7 +93,12 @@ const openDatabase = async () => {
 
 export const initDatabase = async (): Promise<void> => {
   if (initPromise) return initPromise;
-  initPromise = _doInit();
+  initPromise = _doInit().catch((e) => {
+    // Don't wedge every future caller behind one failed attempt (e.g. a transient
+    // "Database not found" race on cold start) — let the next call retry from scratch.
+    initPromise = null;
+    throw e;
+  });
   return initPromise;
 };
 

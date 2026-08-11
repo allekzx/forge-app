@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
@@ -51,6 +51,7 @@ export default function HomeScreen() {
   const [weekStats, setWeekStats] = useState<WeeklyStats | null>(null);
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);
   const [activeSchedule, setActiveSchedule] = useState<(ProgramDay | null)[]>(Array(7).fill(null));
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     setError(null);
@@ -76,6 +77,8 @@ export default function HomeScreen() {
     } catch (e) {
       console.error('[home] loadData error:', e);
       setError('Impossible de charger les données.');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -151,6 +154,16 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <ErrorView message={error} onRetry={loadData} />
+      </SafeAreaView>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={colors.tint} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -304,6 +317,7 @@ function TemplateCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 20, paddingBottom: 40 },
 
   header: {

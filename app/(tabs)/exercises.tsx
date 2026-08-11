@@ -9,7 +9,7 @@ import { useColors } from '@/hooks/use-colors';
 import { addExercisesToTemplate, createWorkoutWithExercises, getExercises, initDatabase } from '@/services/DatabaseService';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ITEM_HEIGHT = 81;
@@ -78,6 +78,7 @@ export default function ExerciseLibraryScreen() {
   const [exercises, setExercises] = useState<any[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -94,6 +95,8 @@ export default function ExerciseLibraryScreen() {
         console.error("Failed to load exercises", e);
         setExercises(initialExercises);
         setLoadError("Certains exercices proviennent du catalogue hors-ligne. Tes exercices personnalisés ne sont peut-être pas visibles.");
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
@@ -234,13 +237,21 @@ export default function ExerciseLibraryScreen() {
         </View>
       )}
 
-      <FlatList
-        data={filteredExercises}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        getItemLayout={getItemLayout}
-        renderItem={renderItem}
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={colors.tint} />
+          <Text style={[styles.loadingText, { color: colors.icon }]}>Chargement des exercices…</Text>
+        </View>
+      ) : (
+        <FlatList
+          style={{ flex: 1 }}
+          data={filteredExercises}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          getItemLayout={getItemLayout}
+          renderItem={renderItem}
+        />
+      )}
 
       {/* Selection Bar */}
       {selectedExercises.length > 0 && (
@@ -335,6 +346,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingBottom: 100,
+  },
+  loadingText: {
+    fontSize: 13,
   },
   itemContainer: {
     flexDirection: 'row',
