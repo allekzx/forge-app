@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, Easing, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { Fonts, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
 
@@ -184,9 +184,9 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <View style={[styles.container, { backgroundColor: bgColor, borderColor: colors.border }]}>
       <View style={styles.top}>
-        <Text style={[styles.label, { color: colors.icon }]}>Repos</Text>
+        <Text style={[styles.label, { color: colors.icon }]}>REPOS</Text>
         {editMode ? (
           <TextInput
             style={[styles.time, styles.timeInput, { color: colors.success }]}
@@ -226,16 +226,16 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
 }
 
 const styles = StyleSheet.create({
-  container: { borderRadius: 10, padding: 12, marginBottom: 6, gap: 8 },
+  container: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 12, marginBottom: 6, gap: 8 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  label: { fontSize: 14, fontWeight: '600' },
-  time: { fontSize: 22, fontWeight: 'bold' },
+  label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  time: { fontSize: 22, fontWeight: 'bold', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
   timeInput: { minWidth: 60, textAlign: 'right', padding: 0 },
-  barBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 3 },
+  barBg: { height: 4, borderRadius: 0, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 0 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  adjustBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8, minHeight: 36 },
-  adjustText: { fontSize: 14, fontWeight: '600' },
-  skipBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8, borderWidth: 1, minHeight: 36 },
-  skipText: { fontSize: 14, fontWeight: '600' },
+  adjustBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: Radius.sm, minHeight: 36 },
+  adjustText: { fontSize: 14, fontWeight: '600', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
+  skipBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: Radius.sm, borderWidth: 1, minHeight: 36 },
+  skipText: { fontSize: 14, fontWeight: '600', letterSpacing: 0.4, textTransform: 'uppercase' },
 });

@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, type TouchableOpacityProps } from 'react-native';
@@ -65,7 +65,7 @@ export function Button({
         <ActivityIndicator color={textColor[variant]} />
       ) : (
         <Text style={[styles.label, { color: textColor[variant], fontSize: fontSizes[size] }]}>
-          {label}
+          {label.toUpperCase()}
         </Text>
       )}
     </TouchableOpacity>
@@ -74,12 +74,13 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 14,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   label: {
     fontWeight: '700',
+    letterSpacing: 0.4,
   },
 });
