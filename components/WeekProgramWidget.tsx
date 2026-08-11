@@ -28,13 +28,12 @@ interface Props {
   schedule: (ProgramDay | null)[];
   templates: WorkoutTemplateSummary[];
   onOpenSelect: () => void;
-  onStartTemplate: (templateId: string) => void;
   onScheduleChange: (newSchedule: (ProgramDay | null)[]) => void;
 }
 
 export function WeekProgramWidget({
   stats, program, schedule, templates,
-  onOpenSelect, onStartTemplate, onScheduleChange,
+  onOpenSelect, onScheduleChange,
 }: Props) {
   const colors = useColors();
   const [editMode, setEditMode] = useState(false);
@@ -43,14 +42,6 @@ export function WeekProgramWidget({
   const todayIdx = (new Date().getDay() + 6) % 7;
   const activeDays = stats?.days.map(d => d.hasWorkout) ?? Array(7).fill(false);
   const activeCount = activeDays.filter(Boolean).length;
-
-  const nextWorkout = (() => {
-    for (let i = 0; i < 7; i++) {
-      const idx = (todayIdx + i) % 7;
-      if (schedule[idx]) return { dayIndex: idx, day: schedule[idx]! };
-    }
-    return null;
-  })();
 
   // Compute which templates belong to the active program (3-level fallback matching)
   const programTemplateIds = useMemo(() => {
@@ -87,30 +78,25 @@ export function WeekProgramWidget({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           {program ? (
-            <>
-              <ThemedText style={[styles.sectionLabel, { color: colors.icon }]}>CETTE SEMAINE</ThemedText>
-              <ThemedText style={[styles.programName, { color: colors.text }]}>{program.name}</ThemedText>
-            </>
+            <ThemedText style={[styles.programName, { color: colors.text }]}>{program.name}</ThemedText>
           ) : (
             <ThemedText style={[styles.title, { color: colors.text }]}>Activité de la semaine</ThemedText>
           )}
         </View>
         <View style={styles.headerRight}>
-          <View style={[styles.badge, { backgroundColor: colors.tint + '20' }]}>
-            <ThemedText style={[styles.badgeText, { color: colors.tint }]}>{activeCount}/7</ThemedText>
-          </View>
+          <ThemedText style={[styles.badgeText, { color: colors.icon }]}>{activeCount}/7 séances</ThemedText>
           {program && (
             <TouchableOpacity
-              style={[styles.editBtn, { backgroundColor: editMode ? colors.tint : colors.background }]}
+              style={[styles.editBtn, { backgroundColor: editMode ? colors.tint : colors.card, borderColor: colors.border }]}
               onPress={toggleEdit}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <IconSymbol name="pencil" size={14} color={editMode ? '#0F172A' : colors.icon} />
+              <IconSymbol name="pencil" size={13} color={editMode ? '#0F172A' : colors.icon} />
             </TouchableOpacity>
           )}
         </View>
@@ -133,10 +119,6 @@ export function WeekProgramWidget({
           const barFillColor = done ? colors.success : planned ? colors.tint : undefined;
           const barBorderColor = isToday ? colors.text + '60' : colors.border;
 
-          const pillTextColor = planned
-            ? colors.tint
-            : done ? colors.success : isToday ? colors.text : colors.icon + '70';
-
           return (
             <TouchableOpacity
               key={i}
@@ -149,17 +131,10 @@ export function WeekProgramWidget({
                 {barFillColor && (
                   <View style={[
                     styles.dayBarFill,
-                    { backgroundColor: barFillColor, opacity: done ? 1 : 0.28, height: done ? '100%' : '38%' },
+                    { backgroundColor: barFillColor, opacity: done ? 1 : 0.35, height: done ? '100%' : '45%' },
                   ]} />
                 )}
               </View>
-
-              <ThemedText
-                style={[styles.dayPillText, { color: pillTextColor, fontWeight: planned ? '700' : '500' }]}
-                numberOfLines={1}
-              >
-                {planned ? planned.label.slice(0, 2) : ''}
-              </ThemedText>
 
               <ThemedText style={[styles.dayLabel, { color: isToday ? colors.text : colors.icon + '80' }]}>
                 {label}
@@ -172,7 +147,7 @@ export function WeekProgramWidget({
       </View>
 
       {/* Stats */}
-      <View style={[styles.statsRow, { borderTopColor: colors.background }]}>
+      <View style={[styles.statsRow, { borderTopColor: colors.border }]}>
         <View style={styles.statItem}>
           <ThemedText style={[styles.statLabel, { color: colors.icon }]}>Volume</ThemedText>
           <ThemedText style={[styles.statValue, { color: colors.text }]}>
@@ -193,41 +168,10 @@ export function WeekProgramWidget({
         </View>
       </View>
 
-      {/* Next workout banner (program active + not editing) */}
-      {!editMode && nextWorkout && program && (
-        <View style={[styles.nextBanner, { borderTopColor: colors.background }]}>
-          <View style={styles.nextInfo}>
-            <View style={[styles.nextDot, {
-              backgroundColor: nextWorkout.dayIndex === todayIdx ? colors.tint : colors.icon,
-            }]} />
-            <ThemedText style={[styles.nextLabel, { color: colors.icon }]}>
-              {nextWorkout.dayIndex === todayIdx ? "Aujourd'hui · " : 'Prochain · '}
-              <ThemedText style={[styles.nextWorkoutName, { color: colors.text }]}>
-                {nextWorkout.day.label}
-              </ThemedText>
-            </ThemedText>
-          </View>
-          {nextWorkout.dayIndex === todayIdx && (
-            <TouchableOpacity
-              style={[styles.startBtn, { backgroundColor: colors.tint }]}
-              onPress={() => {
-                const tpl =
-                  templates.find(t => t.id === nextWorkout.day.templateId) ??
-                  templates.find(t => t.name === nextWorkout.day.label);
-                if (tpl) onStartTemplate(tpl.id);
-              }}
-              activeOpacity={0.8}
-            >
-              <ThemedText style={styles.startBtnText}>Démarrer</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
       {/* Bottom action row */}
       {!editMode && (
         <TouchableOpacity
-          style={[styles.ctaRow, { borderTopColor: colors.background }]}
+          style={[styles.ctaRow, { borderTopColor: colors.border }]}
           onPress={onOpenSelect}
           activeOpacity={0.7}
         >
@@ -350,48 +294,41 @@ export function WeekProgramWidget({
 }
 
 const styles = StyleSheet.create({
-  container: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, marginBottom: 20, overflow: 'hidden' },
+  container: { marginBottom: 20 },
 
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingHorizontal: 0,
+    paddingTop: 0,
     paddingBottom: 12,
     gap: 8,
   },
-  sectionLabel: {
-    fontSize: 11, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1,
-    marginBottom: 2,
-  },
   programName: { fontSize: 16, fontWeight: '700' },
   title: { fontSize: 16, fontWeight: '700' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 2 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.sm },
-  badgeText: { fontSize: 12, fontWeight: '700', fontFamily: Fonts?.mono },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 2 },
+  badgeText: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   editBtn: {
-    width: 30, height: 30, borderRadius: Radius.sm,
+    width: 28, height: 28, borderRadius: Radius.sm, borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center', justifyContent: 'center',
   },
 
   editHint: {
-    fontSize: 12, paddingHorizontal: 16, paddingBottom: 8,
+    fontSize: 12, paddingBottom: 8,
   },
 
   daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   dayCol: { alignItems: 'center', flex: 1, gap: 4 },
   dayBar: {
-    width: 26, height: 46, borderRadius: Radius.sm,
+    width: 18, height: 28, borderRadius: Radius.sm,
     justifyContent: 'flex-end', overflow: 'hidden',
   },
   dayBarFill: { width: '100%' },
-  dayPillText: { textAlign: 'center', fontFamily: Fonts?.mono, fontSize: 9, minHeight: 11 },
   dayLabel: { fontSize: 9, fontWeight: '500' },
   todayDot: { width: 4, height: 4, borderRadius: 2 },
 
@@ -399,28 +336,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
   },
   statItem: {},
   statLabel: { fontSize: 11, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
   statValue: { fontSize: 16, fontWeight: '700', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
-
-  nextBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  nextInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  nextDot: { width: 6, height: 6, borderRadius: 3 },
-  nextLabel: { fontSize: 13 },
-  nextWorkoutName: { fontWeight: '700' },
-  startBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: Radius.sm },
-  startBtnText: { fontSize: 12, fontWeight: '700', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   ctaRow: {
     flexDirection: 'row',

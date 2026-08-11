@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
@@ -10,11 +10,9 @@ import { WeekProgramWidget } from '@/components/WeekProgramWidget';
 import { Fonts, Radius } from '@/constants/theme';
 import { useColors } from '@/hooks/use-colors';
 import {
-  TemplateDetail,
   WeeklyStats,
   WorkoutTemplateSummary,
   getActiveWorkout,
-  getTemplateWithExercises,
   getUserSetting,
   getWeeklyStats,
   getWorkoutStreak,
@@ -46,8 +44,6 @@ export default function HomeScreen() {
 
   const [streak, setStreak] = useState(0);
   const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [detailsCache, setDetailsCache] = useState<Map<string, TemplateDetail>>(new Map());
   const [userName, setUserName] = useState('');
   const [activeWorkout, setActiveWorkout] = useState<{ id: string; name: string } | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -85,18 +81,6 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const handleToggleExpand = useCallback(async (tpl: WorkoutTemplateSummary) => {
-    const nextId = expandedId === tpl.id ? null : tpl.id;
-    setExpandedId(nextId);
-
-    if (nextId && !detailsCache.has(nextId)) {
-      const detail = await getTemplateWithExercises(nextId);
-      if (detail) {
-        setDetailsCache(prev => new Map(prev).set(nextId, detail));
-      }
-    }
-  }, [expandedId, detailsCache]);
-
   const handleStartFromTemplate = useCallback(async (templateId: string) => {
     try {
       const existing = await getActiveWorkout();
@@ -130,8 +114,8 @@ export default function HomeScreen() {
   }, [activeProgram]);
 
   // When a program is active: show only its routines with program labels, ordered from today
-  const { orderedTemplates, programLabels } = (() => {
-    const fallback = { orderedTemplates: templates, programLabels: new Map<string, string>() };
+  const { orderedTemplates, programLabels, heroIsToday } = (() => {
+    const fallback = { orderedTemplates: templates, programLabels: new Map<string, string>(), heroIsToday: false };
     if (!activeProgram) return fallback;
     const todayIdx = (new Date().getDay() + 6) % 7;
     const seen = new Set<string>();
@@ -156,8 +140,12 @@ export default function HomeScreen() {
     return {
       orderedTemplates: resolved.map(r => r.tpl),
       programLabels: new Map(resolved.map(r => [r.tpl.id, r.label])),
+      heroIsToday: !!activeSchedule[todayIdx],
     };
   })();
+
+  const heroTemplate = orderedTemplates[0] ?? null;
+  const heroLabel = heroTemplate ? (activeProgram ? (heroIsToday ? "Aujourd'hui" : 'Prochaine séance') : 'Suggestion') : null;
 
   if (error) {
     return (
@@ -211,14 +199,31 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Semaine + programme */}
+        {/* Prochaine séance — bloc unique dominant */}
+        {heroTemplate && (
+          <View style={[styles.hero, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <ThemedText style={[styles.heroLabel, { color: colors.tint }]}>{heroLabel}</ThemedText>
+            <ThemedText style={styles.heroName}>{heroTemplate.name}</ThemedText>
+            <ThemedText style={[styles.heroMeta, { color: colors.icon }]}>
+              {heroTemplate.exerciseCount} exercice{heroTemplate.exerciseCount > 1 ? 's' : ''}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.heroCta, { backgroundColor: colors.tint }]}
+              onPress={() => handleStartFromTemplate(heroTemplate.id)}
+              activeOpacity={0.85}
+            >
+              <ThemedText style={styles.heroCtaText}>Démarrer la séance</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Semaine — ligne compacte + stats */}
         <WeekProgramWidget
           stats={weekStats}
           program={activeProgram}
           schedule={activeSchedule}
           templates={templates}
           onOpenSelect={() => router.push('/program-select' as any)}
-          onStartTemplate={handleStartFromTemplate}
           onScheduleChange={handleScheduleChange}
         />
 
@@ -250,13 +255,9 @@ export default function HomeScreen() {
                   key={tpl.id}
                   tpl={tpl}
                   displayName={programLabels.get(tpl.id) ?? tpl.name}
-                  expanded={expandedId === tpl.id}
-                  detail={detailsCache.get(tpl.id) ?? null}
                   colors={colors}
                   isFirst={i === 0}
-                  onToggle={() => handleToggleExpand(tpl)}
-                  onStart={() => handleStartFromTemplate(tpl.id)}
-                  onEdit={() => router.push({ pathname: '/workouts/template', params: { templateId: tpl.id } })}
+                  onPress={() => router.push({ pathname: '/workouts/template', params: { templateId: tpl.id } })}
                 />
               ))}
             </View>
@@ -269,33 +270,21 @@ export default function HomeScreen() {
 }
 
 function TemplateCard({
-  tpl, displayName, expanded, detail, colors, isFirst, onToggle, onStart, onEdit,
+  tpl, displayName, colors, isFirst, onPress,
 }: {
   tpl: WorkoutTemplateSummary;
   displayName: string;
-  expanded: boolean;
-  detail: TemplateDetail | null;
   colors: any;
   isFirst: boolean;
-  onToggle: () => void;
-  onStart: () => void;
-  onEdit: () => void;
+  onPress: () => void;
 }) {
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(rotateAnim, {
-      toValue: expanded ? 1 : 0,
-      duration: 200,
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
-  }, [expanded, rotateAnim]);
-
-  const chevronRotate = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
-
   return (
-    <View style={[styles.templateCard, !isFirst && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-      <TouchableOpacity style={styles.templateHeader} onPress={onToggle} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.templateCard, !isFirst && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.templateHeader}>
         <View style={[styles.templateStamp, { borderColor: colors.tint }]}>
           <ThemedText style={[styles.templateStampText, { color: colors.tint }]}>{tpl.exerciseCount}</ThemedText>
         </View>
@@ -307,50 +296,9 @@ function TemplateCard({
             </ThemedText>
           </View>
         </View>
-        <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-          <IconSymbol name="chevron.right" size={18} color={colors.icon} />
-        </Animated.View>
-      </TouchableOpacity>
-
-      {expanded && (
-        <View style={[styles.expandedContent, { borderTopColor: colors.border }]}>
-          {detail ? (
-            <>
-              {detail.exercises.map((ex, i) => (
-                <View key={`${i}_${ex.exerciseId}`} style={styles.exerciseRow}>
-                  <ThemedText style={[styles.exerciseIndex, { color: colors.icon }]}>{i + 1}</ThemedText>
-                  <ThemedText style={styles.exerciseName} numberOfLines={1}>{ex.name}</ThemedText>
-                  <ThemedText style={[styles.exerciseConfig, { color: colors.icon }]}>
-                    {ex.sets} × {ex.reps}{ex.weight_kg ? ` — ${ex.weight_kg} kg` : ''}
-                  </ThemedText>
-                </View>
-              ))}
-            </>
-          ) : (
-            <ThemedText style={[styles.templateMeta, { color: colors.icon, padding: 12 }]}>
-              Chargement…
-            </ThemedText>
-          )}
-
-          <View style={styles.expandedActions}>
-            <TouchableOpacity
-              style={[styles.startBtnFull, { backgroundColor: colors.tint }]}
-              onPress={onStart}
-              activeOpacity={0.8}
-            >
-              <ThemedText style={styles.startBtnText}>Démarrer</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.editBtn, { borderColor: colors.icon + '40' }]}
-              onPress={onEdit}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={[styles.editBtnText, { color: colors.text }]}>Modifier</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </View>
+        <IconSymbol name="chevron.right" size={18} color={colors.icon} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -418,26 +366,14 @@ const styles = StyleSheet.create({
   templateName: { fontSize: 15 },
   templateMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
   templateMeta: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 },
-  templateMetaDot: { fontSize: 13 },
 
-  expandedContent: { borderTopWidth: StyleSheet.hairlineWidth, paddingBottom: 4 },
-  exerciseRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 7, gap: 8,
+  hero: {
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.md,
+    padding: 20, marginBottom: 16, gap: 6,
   },
-  exerciseIndex: { fontSize: 13, fontWeight: '600', width: 18, textAlign: 'center', fontFamily: Fonts?.mono },
-  exerciseName: { flex: 1, fontSize: 14 },
-  exerciseConfig: { fontSize: 13, fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
-
-  expandedActions: { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 8 },
-  startBtnFull: {
-    flex: 1, height: 44, borderRadius: Radius.sm,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  startBtnText: { fontSize: 13, fontWeight: '700', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 },
-  editBtn: {
-    height: 44, paddingHorizontal: 16, borderRadius: Radius.sm,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-  },
-  editBtnText: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  heroName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.3 },
+  heroMeta: { fontSize: 13, marginBottom: 8 },
+  heroCta: { height: 52, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
+  heroCtaText: { fontSize: 14, fontWeight: '800', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.6 },
 });
