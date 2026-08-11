@@ -7,33 +7,33 @@ const tintColorLight = '#F97316'; // orange-500
 const tintColorDark  = '#F97316';
 
 /**
- * "Le Tableau" → "Factory Records" direction: a matte, near-monochrome catalog
- * ground (vast unprinted black / paper white) with hairline dividers instead of
- * filled cards, and the accent reserved for primary actions + state — never surface fill.
+ * "La Fonte" direction: stamped iron plates and brushed steel — a graphite ground
+ * with visibly lifted plate-like panels (not hairline-only), hard edges, and the
+ * ember accent reserved for primary actions + state.
  */
 export const Colors = {
   light: {
-    text: '#0A0A0A',
-    background: '#F4F4F2',
+    text: '#141312',
+    background: '#EDECE7',
     tint: tintColorLight,
-    icon: '#68655F',
-    tabIconDefault: '#A5A19A',
+    icon: '#6E6A62',
+    tabIconDefault: '#B0ACA1',
     tabIconSelected: tintColorLight,
-    card: '#FFFFFF',
-    border: '#DEDCD5',
-    activity: '#E4E2DB',
+    card: '#F8F7F4',
+    border: '#D8D5CC',
+    activity: '#E2DFD6',
     success: '#22C55E',
   },
   dark: {
-    text: '#F1F0EC',
-    background: '#0A0A09',
+    text: '#F2EFE9',
+    background: '#0B0C0D',
     tint: tintColorDark,
-    icon: '#8C887F',
-    tabIconDefault: '#59564F',
+    icon: '#8B877E',
+    tabIconDefault: '#57544D',
     tabIconSelected: tintColorDark,
-    card: '#131311',
-    border: '#242320',
-    activity: '#1C1B18',
+    card: '#17191B',
+    border: '#2A2D30',
+    activity: '#202225',
     success: '#22C55E',
   },
 };
