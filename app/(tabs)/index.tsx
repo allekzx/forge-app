@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
+import { Button } from '@/components/shared/Button';
 import { ErrorView } from '@/components/shared/ErrorView';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -10,9 +12,11 @@ import { WeekProgramWidget } from '@/components/WeekProgramWidget';
 import { Fonts, Radius } from '@/constants/theme';
 import { useColors } from '@/hooks/use-colors';
 import {
+  PersonalRecord,
   WeeklyStats,
   WorkoutTemplateSummary,
   getActiveWorkout,
+  getPersonalRecords,
   getUserSetting,
   getWeeklyStats,
   getWorkoutStreak,
@@ -52,18 +56,20 @@ export default function HomeScreen() {
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);
   const [activeSchedule, setActiveSchedule] = useState<(ProgramDay | null)[]>(Array(7).fill(null));
   const [isLoading, setIsLoading] = useState(true);
+  const [recentPR, setRecentPR] = useState<PersonalRecord | null>(null);
 
   const loadData = useCallback(async () => {
     setError(null);
     try {
       await initDatabase();
-      const [streakData, templatesData, nameData, activeData, programData, statsData] = await Promise.all([
+      const [streakData, templatesData, nameData, activeData, programData, statsData, records] = await Promise.all([
         getWorkoutStreak(),
         getWorkoutTemplates(),
         getUserSetting('user_name', ''),
         getActiveWorkout(),
         getActiveProgram(),
         getWeeklyStats(),
+        getPersonalRecords(50),
       ]);
       const customSchedule = programData ? await getCustomSchedule(programData.id) : null;
       setStreak(streakData);
@@ -74,6 +80,13 @@ export default function HomeScreen() {
       setActiveProgram(programData);
       setActiveSchedule(customSchedule ?? programData?.weekSchedule ?? Array(7).fill(null));
       setBannerDismissed(false);
+
+      // Only celebrate a record set in the last week — an old PR resurfaced isn't "new"
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const mostRecent = [...records].sort(
+        (a, b) => new Date(b.achieved_at).getTime() - new Date(a.achieved_at).getTime()
+      )[0];
+      setRecentPR(mostRecent && Date.now() - new Date(mostRecent.achieved_at).getTime() < ONE_WEEK_MS ? mostRecent : null);
     } catch (e) {
       console.error('[home] loadData error:', e);
       setError('Impossible de charger les données.');
@@ -149,6 +162,8 @@ export default function HomeScreen() {
 
   const heroTemplate = orderedTemplates[0] ?? null;
   const heroLabel = heroTemplate ? (activeProgram ? (heroIsToday ? "Aujourd'hui" : 'Prochaine séance') : 'Suggestion') : null;
+  const activeDaysCount = weekStats?.days.filter(d => d.hasWorkout).length ?? 0;
+  const intensityPct = Math.round((activeDaysCount / 7) * 100);
 
   if (error) {
     return (
@@ -220,13 +235,38 @@ export default function HomeScreen() {
             <ThemedText style={[styles.heroMeta, { color: colors.icon }]}>
               {heroTemplate.exerciseCount} exercice{heroTemplate.exerciseCount > 1 ? 's' : ''}
             </ThemedText>
-            <TouchableOpacity
-              style={[styles.heroCta, { backgroundColor: colors.tint }]}
+
+            <View style={styles.intensityRow}>
+              <ThemedText style={[styles.intensityLabel, { color: colors.icon }]}>INTENSITÉ 7 JOURS</ThemedText>
+              <ThemedText style={[styles.intensityValue, { color: colors.icon }]}>{intensityPct}%</ThemedText>
+            </View>
+            <View style={[styles.intensityBarBg, { backgroundColor: colors.background }]}>
+              <View style={[styles.intensityBarFill, { width: `${Math.max(intensityPct, 4)}%`, overflow: 'hidden' }]}>
+                <LinearGradient
+                  colors={colors.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </View>
+            </View>
+
+            <Button
+              label="Démarrer la séance"
               onPress={() => handleStartFromTemplate(heroTemplate.id)}
-              activeOpacity={0.85}
-            >
-              <ThemedText style={styles.heroCtaText}>Démarrer la séance</ThemedText>
-            </TouchableOpacity>
+              style={styles.heroCta}
+            />
+          </View>
+        )}
+
+        {/* Record récent — n'apparaît que si un vrai record a été battu cette semaine */}
+        {recentPR && (
+          <View style={[styles.prCard, { borderColor: colors.tint, backgroundColor: colors.card }]}>
+            <ThemedText style={[styles.prCap, { color: colors.tint }]}>🔥 Nouveau record</ThemedText>
+            <ThemedText style={styles.prBig}>{recentPR.maxWeight} kg</ThemedText>
+            <ThemedText style={[styles.prSub, { color: colors.icon }]}>
+              {recentPR.name}{recentPR.reps ? ` · ${recentPR.reps} reps` : ''}
+            </ThemedText>
           </View>
         )}
 
@@ -243,7 +283,7 @@ export default function HomeScreen() {
         {/* Mes routines */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>MES ROUTINES</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: colors.icon }]}>MES ROUTINES — DÉMARRAGE RAPIDE</ThemedText>
             <TouchableOpacity
               onPress={() => router.push('/(tabs)/workout' as any)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -271,6 +311,7 @@ export default function HomeScreen() {
                   colors={colors}
                   isFirst={i === 0}
                   onPress={() => router.push({ pathname: '/workouts/template', params: { templateId: tpl.id } })}
+                  onQuickStart={() => handleStartFromTemplate(tpl.id)}
                 />
               ))}
             </View>
@@ -283,13 +324,14 @@ export default function HomeScreen() {
 }
 
 function TemplateCard({
-  tpl, displayName, colors, isFirst, onPress,
+  tpl, displayName, colors, isFirst, onPress, onQuickStart,
 }: {
   tpl: WorkoutTemplateSummary;
   displayName: string;
   colors: any;
   isFirst: boolean;
   onPress: () => void;
+  onQuickStart: () => void;
 }) {
   return (
     <TouchableOpacity
@@ -309,6 +351,13 @@ function TemplateCard({
             </ThemedText>
           </View>
         </View>
+        <TouchableOpacity
+          style={[styles.quickStartBtn, { borderColor: colors.tint }]}
+          onPress={(e) => { e.stopPropagation(); onQuickStart(); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <IconSymbol name="play.fill" size={12} color={colors.tint} />
+        </TouchableOpacity>
         <IconSymbol name="chevron.right" size={18} color={colors.icon} />
       </View>
     </TouchableOpacity>
@@ -380,6 +429,10 @@ const styles = StyleSheet.create({
   templateName: { fontSize: 15 },
   templateMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
   templateMeta: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 },
+  quickStartBtn: {
+    width: 30, height: 30, borderRadius: Radius.full, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
 
   hero: {
     borderWidth: StyleSheet.hairlineWidth, borderRadius: Radius.md,
@@ -387,7 +440,19 @@ const styles = StyleSheet.create({
   },
   heroLabel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   heroName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.3 },
-  heroMeta: { fontSize: 13, marginBottom: 8 },
-  heroCta: { height: 52, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
-  heroCtaText: { fontSize: 14, fontWeight: '800', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.6 },
+  heroMeta: { fontSize: 13, marginBottom: 4 },
+  intensityRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  intensityLabel: { fontSize: 9.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  intensityValue: { fontSize: 9.5, fontWeight: '700', fontFamily: Fonts?.mono },
+  intensityBarBg: { height: 6, borderRadius: Radius.full, overflow: 'hidden', marginTop: 5 },
+  intensityBarFill: { height: '100%', borderRadius: Radius.full },
+  heroCta: { marginTop: 10 },
+
+  prCard: {
+    borderWidth: 1, borderRadius: Radius.md, padding: 16,
+    alignItems: 'center', marginBottom: 16, gap: 3,
+  },
+  prCap: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
+  prBig: { fontSize: 26, fontWeight: '900', fontFamily: Fonts?.mono, letterSpacing: -0.5 },
+  prSub: { fontSize: 12 },
 });

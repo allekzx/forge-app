@@ -6,6 +6,7 @@ import { useColors } from '@/hooks/use-colors';
 import { WeeklyStats, WorkoutTemplateSummary } from '@/services/DatabaseService';
 import { useMemo, useState } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const DAY_LABELS_FULL = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
@@ -114,10 +115,7 @@ export function WeekProgramWidget({
           const isToday = i === todayIdx;
           const done = activeDays[i];
           const planned = schedule[i];
-
-          // Rack-bar fill: loaded (done) fills solid, planned shows a tinted top band, rest stays an empty slot.
-          const barFillColor = done ? colors.success : planned ? colors.tint : undefined;
-          const barBorderColor = isToday ? colors.text + '60' : colors.border;
+          const barBorderColor = isToday ? colors.tint : colors.border;
 
           return (
             <TouchableOpacity
@@ -127,12 +125,21 @@ export function WeekProgramWidget({
               activeOpacity={editMode ? 0.7 : 1}
               disabled={!editMode}
             >
+              <ThemedText style={[styles.dayTag, { color: colors.tint }]} numberOfLines={1}>
+                {planned ? planned.label.slice(0, 2).toUpperCase() : ''}
+              </ThemedText>
+
               <View style={[styles.dayBar, { borderColor: barBorderColor, borderWidth: isToday ? 1.5 : 1 }]}>
-                {barFillColor && (
-                  <View style={[
-                    styles.dayBarFill,
-                    { backgroundColor: barFillColor, opacity: done ? 1 : 0.35, height: done ? '100%' : '45%' },
-                  ]} />
+                {done && <View style={[styles.dayBarFill, { backgroundColor: colors.success, height: '100%' }]} />}
+                {!done && planned && (
+                  <View style={[styles.dayBarFill, { height: '45%', overflow: 'hidden' }]}>
+                    <LinearGradient
+                      colors={colors.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                  </View>
                 )}
               </View>
 
@@ -324,6 +331,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   dayCol: { alignItems: 'center', flex: 1, gap: 4 },
+  dayTag: { fontSize: 7.5, fontWeight: '800', letterSpacing: 0.2, height: 10 },
   dayBar: {
     width: 18, height: 28, borderRadius: Radius.sm,
     justifyContent: 'flex-end', overflow: 'hidden',

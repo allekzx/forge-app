@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RestTimer } from '@/components/workout/RestTimer';
 
 // Conditional require : éliminé du bundle web par Metro au build time
@@ -824,9 +825,15 @@ export default function WorkoutInProgressScreen() {
 
             {!isFinished && !reorderMode && (
               <TouchableOpacity
-                style={[styles.finishButton, { backgroundColor: colors.tint }]}
+                style={[styles.finishButton, { overflow: 'hidden' }]}
                 onPress={handleFinish}
               >
+                <LinearGradient
+                  colors={colors.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
                 <IconSymbol name="checkmark.circle.fill" size={20} color="#0F172A" />
                 <Text style={styles.finishText}>Terminer la séance</Text>
               </TouchableOpacity>

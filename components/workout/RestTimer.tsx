@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, Easing, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Fonts, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -207,7 +208,14 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
       </View>
 
       <View style={[styles.barBg, { backgroundColor: adjustBg }]}>
-        <Animated.View style={[styles.barFill, { width: barWidth, backgroundColor: colors.tint }]} />
+        <Animated.View style={[styles.barFill, { width: barWidth, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={colors.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
       </View>
 
       <View style={styles.actions}>

@@ -7,36 +7,48 @@ const tintColorLight = '#F97316'; // orange-500
 const tintColorDark  = '#F97316';
 
 /**
- * "La Fonte" direction: stamped iron plates and brushed steel — a graphite ground
- * with visibly lifted plate-like panels (not hairline-only), hard edges, and the
- * ember accent reserved for primary actions + state.
+ * "Molten" direction: a forge-dark ground with the accent expressed as a cooling-metal
+ * gradient (ember → hot orange → white-hot) reserved for CTAs, effort/intensity meters,
+ * and PR moments — everywhere else stays a flat, quiet ground so the gradient still reads
+ * as a signal, not decoration.
  */
 export const Colors = {
   light: {
-    text: '#141312',
-    background: '#EDECE7',
+    text: '#1A1512',
+    background: '#F3EEE6',
     tint: tintColorLight,
-    icon: '#6E6A62',
-    tabIconDefault: '#B0ACA1',
+    icon: '#8A7F6E',
+    tabIconDefault: '#C2B8A6',
     tabIconSelected: tintColorLight,
-    card: '#F8F7F4',
-    border: '#D8D5CC',
-    activity: '#E2DFD6',
+    card: '#FBF7F1',
+    border: '#E4DBCB',
+    activity: '#EAE2D3',
     success: '#22C55E',
   },
   dark: {
-    text: '#F2EFE9',
-    background: '#0B0C0D',
+    text: '#F5EFE6',
+    background: '#0A0908',
     tint: tintColorDark,
-    icon: '#8B877E',
-    tabIconDefault: '#57544D',
+    icon: '#93887A',
+    tabIconDefault: '#544C40',
     tabIconSelected: tintColorDark,
-    card: '#17191B',
-    border: '#2A2D30',
-    activity: '#202225',
+    card: '#171310',
+    border: '#2E2620',
+    activity: '#211B15',
     success: '#22C55E',
   },
 };
+
+/**
+ * Cooling-metal gradient per accent — the Molten signature. Used via expo-linear-gradient
+ * on primary CTAs, the rest-timer intensity bar, and PR/record moments. Never a surface fill.
+ */
+export const MoltenGradients = {
+  orange: ['#7A1E00', '#FF6B00', '#FFD166'],
+  green:  ['#0F3D24', '#22C55E', '#A7F3D0'],
+  blue:   ['#0B2E5C', '#3B82F6', '#BFDBFE'],
+  purple: ['#3B1264', '#8B5CF6', '#E9D5FF'],
+} as const;
 
 /** Spacing scale (4-base) */
 export const Spacing = {
@@ -53,12 +65,12 @@ export const Spacing = {
 /** Minimum touch target size (WCAG / Android guidelines) */
 export const TouchTarget = 48;
 
-/** Border radii — flat, catalog-sleeve edges, not app-store rounded */
+/** Border radii — softer than a stamped plate, still contained; premium not bouncy */
 export const Radius = {
-  sm: 2,
-  md: 3,
-  lg: 4,
-  xl: 6,
+  sm: 4,
+  md: 8,
+  lg: 10,
+  xl: 14,
   full: 999,
 } as const;
 
@@ -85,7 +97,7 @@ export const AccentPalettes = {
 export type AccentKey = keyof typeof AccentPalettes;
 
 export function getColors(scheme: 'light' | 'dark', accent: AccentKey = 'orange') {
-  return { ...Colors[scheme], ...AccentPalettes[accent] };
+  return { ...Colors[scheme], ...AccentPalettes[accent], gradient: MoltenGradients[accent] };
 }
 
 export const Fonts = Platform.select({

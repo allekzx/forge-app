@@ -1,6 +1,7 @@
 import { Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, type TouchableOpacityProps } from 'react-native';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
@@ -43,6 +44,32 @@ export function Button({
 
   const heights: Record<ButtonSize, number> = { sm: 36, md: 48, lg: 56 };
   const fontSizes: Record<ButtonSize, number> = { sm: 14, md: 15, lg: 16 };
+
+  // Primary is the Molten signature: a cooling-metal gradient instead of a flat fill.
+  if (variant === 'primary') {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        disabled={disabled || loading}
+        style={[styles.base, { height: heights[size], opacity: disabled ? 0.4 : 1, overflow: 'hidden' }, style]}
+        {...rest}
+      >
+        <LinearGradient
+          colors={colors.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+        {loading ? (
+          <ActivityIndicator color={textColor.primary} />
+        ) : (
+          <Text style={[styles.label, { color: textColor.primary, fontSize: fontSizes[size] }]}>
+            {label.toUpperCase()}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
