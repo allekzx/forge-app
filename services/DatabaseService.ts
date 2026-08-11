@@ -74,7 +74,8 @@ const openDatabase = async () => {
           const msg = e instanceof Error ? e.message : '';
           const isRetriable =
             msg.includes('NoModificationAllowedError') ||
-            msg.includes('Invalid VFS state');
+            msg.includes('Invalid VFS state') ||
+            msg.includes('Database not found');
           if (!isRetriable || attempt === 5) {
             dbPromise = null; // Permet un retry ultérieur
             throw e;
@@ -895,7 +896,12 @@ export const getWeeklyStats = async (): Promise<WeeklyStats> => {
   const monday = new Date(today);
   monday.setDate(today.getDate() - daysFromMonday);
   monday.setHours(0, 0, 0, 0);
-  const mondayStr = monday.toISOString().split('T')[0];
+  // `created_at` is stored as a UTC ISO instant. Comparing it lexicographically against
+  // another ISO instant is timezone-safe; extracting SQLite's DATE(created_at) is not —
+  // it reads the UTC calendar date, which for any positive-UTC-offset user (e.g. Paris)
+  // falls a day earlier than the local calendar date for hours after local midnight,
+  // shifting every "done" dot on the week strip one column later than the real day.
+  const mondayIso = monday.toISOString();
 
   // Toutes les stats en une seule requête JOIN — pas d'interpolation de chaîne
   const stats = await database.getFirstAsync<{
@@ -910,23 +916,26 @@ export const getWeeklyStats = async (): Promise<WeeklyStats> => {
        COALESCE(SUM(strftime('%s', w.finished_at) - strftime('%s', w.created_at)), 0) AS totalDurationSeconds
      FROM workouts w
      LEFT JOIN workout_sets ws ON ws.workout_id = w.id
-     WHERE DATE(w.created_at) >= ?
+     WHERE w.created_at >= ?
        AND w.finished_at IS NOT NULL`,
-    mondayStr
+    mondayIso
   );
 
-  // Jours actifs — uniquement les séances terminées
-  const activeDayRows = await database.getAllAsync<{ date: string }>(
-    `SELECT DISTINCT DATE(created_at) AS date FROM workouts WHERE DATE(created_at) >= ? AND finished_at IS NOT NULL`,
-    mondayStr
+  // Jours actifs — comparés comme de vrais instants (Date), pas comme des chaînes UTC,
+  // pour retomber sur le bon jour calendaire local quel que soit le fuseau horaire.
+  const activeRows = await database.getAllAsync<{ created_at: string }>(
+    `SELECT created_at FROM workouts WHERE created_at >= ? AND finished_at IS NOT NULL`,
+    mondayIso
   );
-  const activeDates = new Set(activeDayRows.map(r => r.date));
+  const activeTimestamps = activeRows.map(r => new Date(r.created_at).getTime());
 
   const days: WeekDayActivity[] = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
-    return { date: dateStr, hasWorkout: activeDates.has(dateStr) };
+    const dayStart = new Date(monday);
+    dayStart.setDate(monday.getDate() + i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+    const hasWorkout = activeTimestamps.some(t => t >= dayStart.getTime() && t < dayEnd.getTime());
+    return { date: dayStart.toISOString().split('T')[0], hasWorkout };
   });
 
   return {
@@ -1041,21 +1050,19 @@ export const getVolumeByWeek = async (weeks: number = 8): Promise<VolumeByWeek[]
     weekStart.setHours(0, 0, 0, 0);
 
     const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    weekEnd.setDate(weekStart.getDate() + 7); // exclusive upper bound (next Monday)
 
-    const startStr = weekStart.toISOString().split('T')[0];
-    const endStr = weekEnd.toISOString().split('T')[0];
-
+    // Instant range on the raw ISO string, not DATE() string extraction — see getWeeklyStats
+    // for why DATE(created_at) misattributes workouts near local midnight for non-UTC users.
     const vol = await database.getFirstAsync<{ volume: number }>(
       `SELECT COALESCE(SUM(ws.actual_weight * ws.actual_reps), 0) as volume
        FROM workout_sets ws
        JOIN workouts w ON w.id = ws.workout_id
-       WHERE DATE(w.created_at) >= ? AND DATE(w.created_at) <= ?
+       WHERE w.created_at >= ? AND w.created_at < ?
          AND ws.completed_at IS NOT NULL
          AND ws.actual_weight IS NOT NULL
          AND ws.actual_reps IS NOT NULL`,
-      startStr, endStr
+      weekStart.toISOString(), weekEnd.toISOString()
     );
 
     const label = weekStart.toLocaleDateString('fr', { month: 'short', day: 'numeric' });
