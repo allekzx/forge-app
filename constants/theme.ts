@@ -6,27 +6,34 @@ export const ON_PRIMARY = '#0F172A';
 const tintColorLight = '#F97316'; // orange-500
 const tintColorDark  = '#F97316';
 
+/**
+ * "Le Tableau" → "Factory Records" direction: a matte, near-monochrome catalog
+ * ground (vast unprinted black / paper white) with hairline dividers instead of
+ * filled cards, and the accent reserved for primary actions + state — never surface fill.
+ */
 export const Colors = {
   light: {
-    text: '#0F172A',
-    background: '#F1F5F9',
+    text: '#0A0A0A',
+    background: '#F4F4F2',
     tint: tintColorLight,
-    icon: '#64748B',
-    tabIconDefault: '#94A3B8',
+    icon: '#68655F',
+    tabIconDefault: '#A5A19A',
     tabIconSelected: tintColorLight,
     card: '#FFFFFF',
-    activity: '#E2E8F0',
+    border: '#DEDCD5',
+    activity: '#E4E2DB',
     success: '#22C55E',
   },
   dark: {
-    text: '#F8FAFC',
-    background: '#1F2937',
+    text: '#F1F0EC',
+    background: '#0A0A09',
     tint: tintColorDark,
-    icon: '#94A3B8',
-    tabIconDefault: '#64748B',
+    icon: '#8C887F',
+    tabIconDefault: '#59564F',
     tabIconSelected: tintColorDark,
-    card: '#2D3748',
-    activity: '#374151',
+    card: '#131311',
+    border: '#242320',
+    activity: '#1C1B18',
     success: '#22C55E',
   },
 };
@@ -46,13 +53,19 @@ export const Spacing = {
 /** Minimum touch target size (WCAG / Android guidelines) */
 export const TouchTarget = 48;
 
-/** Border radii */
+/** Border radii — flat, catalog-sleeve edges, not app-store rounded */
 export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 14,
-  xl: 16,
+  sm: 2,
+  md: 3,
+  lg: 4,
+  xl: 6,
   full: 999,
+} as const;
+
+/** Letter-spacing for tracked catalog-style caps labels (SÉANCE Nº 042, MES ROUTINES…) */
+export const Tracking = {
+  label: 0.8,
+  eyebrow: 1.2,
 } as const;
 
 /** Semantic colors (invariant across themes) */
