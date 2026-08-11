@@ -14,7 +14,7 @@ const Notifications = Platform.OS !== 'web' ? (require('expo-notifications') as 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts, Radius } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
 import {
@@ -523,7 +523,7 @@ export default function WorkoutInProgressScreen() {
                     )}
 
                     {/* Notes de séance */}
-                    <View style={[styles.notesCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <View style={[styles.notesCard, { backgroundColor: colors.card }]}>
                       <TouchableOpacity
                         style={styles.notesHeader}
                         onPress={() => setNotesExpanded(v => !v)}
@@ -567,7 +567,7 @@ export default function WorkoutInProgressScreen() {
                 renderItem={({ item }) => (
                   <View style={[
                     styles.exerciseCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
+                    { backgroundColor: colors.card },
                     reorderMode && { borderWidth: 1, borderColor: colors.tint + '40' },
                   ]}>
                     <View style={styles.exerciseCardHeader}>
@@ -1026,48 +1026,46 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 15, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
-  timerText: { fontSize: 14, fontWeight: '600', marginTop: 2, fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
+  headerTitle: { fontSize: 16 },
+  timerText: { fontSize: 14, fontWeight: '600', marginTop: 2 },
   progressPill: { paddingHorizontal: 8, paddingVertical: 4 },
-  progressText: { fontSize: 14, fontWeight: '600', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
+  progressText: { fontSize: 14, fontWeight: '600' },
 
 
   listContent: { paddingBottom: 160, gap: 12 },
 
-  exerciseCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 12 },
+  exerciseCard: { borderRadius: 14, padding: 12 },
   exerciseCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   exerciseTitleGroup: { flex: 1 },
   restHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 2 },
-  restHeaderLabel: { fontSize: 13, fontFamily: Fonts?.mono },
-  restHeaderInput: { fontSize: 13, fontWeight: '600', minWidth: 36, padding: 0, fontFamily: Fonts?.mono },
+  restHeaderLabel: { fontSize: 13 },
+  restHeaderInput: { fontSize: 13, fontWeight: '600', minWidth: 36, padding: 0 },
   exerciseName: { fontSize: 15, marginBottom: 2 },
   exerciseMeta: { fontSize: 14, opacity: 0.6 },
 
   setHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
-  setHeaderCell: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginRight: 8 },
+  setHeaderCell: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5, marginRight: 8 },
 
   setRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, paddingHorizontal: 2, paddingVertical: 4 },
   setIndexCell: { alignItems: 'center', justifyContent: 'center', gap: 2 },
-  setIndexNum: { fontSize: 13, fontWeight: '700', fontFamily: Fonts?.mono },
-  setTypePill: { borderRadius: Radius.sm, paddingHorizontal: 4, paddingVertical: 1, minWidth: 18, alignItems: 'center' },
+  setIndexNum: { fontSize: 13, fontWeight: '700' },
+  setTypePill: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, minWidth: 18, alignItems: 'center' },
   setTypePillText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   setInputCol: { flex: 1 },
   setInput: {
-    borderRadius: Radius.sm,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 8,
     fontSize: 14,
     textAlign: 'center',
     minWidth: 0,
-    fontFamily: Fonts?.mono,
-    fontVariant: ['tabular-nums'],
   },
-  setInputReadOnly: { fontSize: 14, fontWeight: '600', textAlign: 'center', fontFamily: Fonts?.mono },
-  prevHint: { fontSize: 11, textAlign: 'center', marginTop: 2, opacity: 0.55, fontFamily: Fonts?.mono },
+  setInputReadOnly: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  prevHint: { fontSize: 11, textAlign: 'center', marginTop: 2, opacity: 0.55 },
   doneButton: {
     width: 36,
     height: 36,
-    borderRadius: Radius.sm,
+    borderRadius: 10,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1089,10 +1087,10 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: Radius.lg,
+    borderRadius: 999,
     minHeight: 48,
   },
-  addExerciseButtonText: { color: '#0F172A', fontWeight: 'bold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 },
+  addExerciseButtonText: { color: '#0F172A', fontWeight: 'bold', fontSize: 15 },
 
   addSetButton: {
     flexDirection: 'row',
@@ -1100,16 +1098,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
-    borderRadius: Radius.sm,
+    borderRadius: 8,
     paddingVertical: 8,
     marginTop: 4,
     minHeight: 36,
   },
-  addSetText: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  addSetText: { fontSize: 14, fontWeight: '600' },
 
   footerContainer: { gap: 12, marginTop: 4 },
 
-  notesCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 12, gap: 8 },
+  notesCard: { borderRadius: 12, padding: 12, gap: 8 },
   notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
   notesLabel: { flex: 1, fontSize: 14 },
   notesInput: { fontSize: 14, lineHeight: 20, minHeight: 72, paddingTop: 4 },
@@ -1121,13 +1119,13 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 76,
     paddingVertical: 16,
-    borderRadius: Radius.lg,
+    borderRadius: 999,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
   },
-  finishText: { color: '#0F172A', fontWeight: 'bold', fontSize: 15, textTransform: 'uppercase', letterSpacing: 0.5 },
+  finishText: { color: '#0F172A', fontWeight: 'bold', fontSize: 16 },
 
   finishedBanner: {
     position: 'absolute',
@@ -1135,13 +1133,13 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 20,
     paddingVertical: 16,
-    borderRadius: Radius.lg,
+    borderRadius: 999,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
   },
-  finishedText: { fontWeight: 'bold', fontSize: 15, textTransform: 'uppercase', letterSpacing: 0.5 },
+  finishedText: { fontWeight: 'bold', fontSize: 16 },
 
   // ── Summary Modal ──────────────────────────────────────────────────────────
   summaryContent: { padding: 24, paddingBottom: 120, gap: 20 },
@@ -1150,17 +1148,17 @@ const styles = StyleSheet.create({
   summaryWorkoutName: { fontSize: 14 },
 
   summaryStats: { flexDirection: 'row', gap: 10 },
-  statPill: { flex: 1, borderRadius: Radius.md, padding: 12, alignItems: 'center', gap: 4 },
-  statValue: { fontSize: 16, fontWeight: 'bold', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
+  statPill: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 4 },
+  statValue: { fontSize: 16, fontWeight: 'bold' },
+  statLabel: { fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.4 },
 
-  summaryExList: { borderRadius: Radius.md, overflow: 'hidden' },
+  summaryExList: { borderRadius: 14, overflow: 'hidden' },
   summaryExRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   summaryExName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
   summaryExMeta: { fontSize: 14 },
-  summaryExSets: { fontSize: 14, fontWeight: '600', fontFamily: Fonts?.mono },
+  summaryExSets: { fontSize: 14, fontWeight: '600' },
 
-  skippedCard: { borderRadius: Radius.md, padding: 16, gap: 4 },
+  skippedCard: { borderRadius: 14, padding: 16, gap: 4 },
   skippedTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 2 },
   skippedSub: { fontSize: 13, marginBottom: 8 },
   skippedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, gap: 12 },
@@ -1172,10 +1170,10 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 24,
     paddingVertical: 16,
-    borderRadius: Radius.lg,
+    borderRadius: 999,
     alignItems: 'center',
   },
-  summaryDoneText: { color: '#0F172A', fontWeight: 'bold', fontSize: 15, textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryDoneText: { color: '#0F172A', fontWeight: 'bold', fontSize: 16 },
 
   miniTabBar: {
     position: 'absolute',
@@ -1195,9 +1193,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  pickerCard: { width: '100%', borderRadius: Radius.md, padding: 16, gap: 4 },
+  pickerCard: { width: '100%', borderRadius: 16, padding: 16, gap: 4 },
   pickerTitle: { fontSize: 15, fontWeight: '700', marginBottom: 8, paddingHorizontal: 4 },
-  pickerOption: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: Radius.sm },
+  pickerOption: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10 },
   pickerDot: { width: 10, height: 10, borderRadius: 5 },
   pickerOptionText: { flex: 1, fontSize: 15 },
 

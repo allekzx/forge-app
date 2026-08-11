@@ -1,6 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Radius } from '@/constants/theme';
 import { useColors } from '@/hooks/use-colors';
 
 type Props = {
@@ -33,7 +32,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.md,
+    borderRadius: 14,
     marginBottom: 16,
     overflow: 'hidden',
   },

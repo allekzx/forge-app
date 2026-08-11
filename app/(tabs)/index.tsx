@@ -7,7 +7,6 @@ import { ErrorView } from '@/components/shared/ErrorView';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { WeekProgramWidget } from '@/components/WeekProgramWidget';
-import { Fonts, Radius } from '@/constants/theme';
 import { useColors } from '@/hooks/use-colors';
 import {
   TemplateDetail,
@@ -290,7 +289,7 @@ function TemplateCard({
   const chevronRotate = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
 
   return (
-    <View style={[styles.templateCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.templateCard, { backgroundColor: colors.card }]}>
       <TouchableOpacity style={styles.templateHeader} onPress={onToggle} activeOpacity={0.7}>
         <View style={styles.templateInfo}>
           <ThemedText type="defaultSemiBold" style={styles.templateName}>{displayName}</ThemedText>
@@ -372,17 +371,17 @@ const styles = StyleSheet.create({
   },
   userInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
-    width: 44, height: 44, borderRadius: Radius.md,
+    width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
   },
   avatarInitial: { fontSize: 18, fontWeight: 'bold', color: '#0F172A' },
   greeting: { fontSize: 13 },
   userName: { fontSize: 18, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: Radius.sm },
-  streakText: { fontSize: 14, fontWeight: '600', fontFamily: Fonts?.mono },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 },
+  streakText: { fontSize: 14, fontWeight: '600' },
   settingsBtn: {
-    width: 40, height: 40, borderRadius: Radius.sm,
+    width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -394,22 +393,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1,
+    fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  sectionLink: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  sectionLink: { fontSize: 13, fontWeight: '600' },
 
   emptyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    borderRadius: Radius.md,
+    borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dashed',
   },
   emptyText: { fontSize: 14, fontWeight: '500' },
 
-  templateCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  templateCard: { borderRadius: 12, overflow: 'hidden' },
   templateHeader: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', padding: 14,
@@ -425,19 +424,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 7, gap: 8,
   },
-  exerciseIndex: { fontSize: 13, fontWeight: '600', width: 18, textAlign: 'center', fontFamily: Fonts?.mono },
+  exerciseIndex: { fontSize: 13, fontWeight: '600', width: 18, textAlign: 'center' },
   exerciseName: { flex: 1, fontSize: 14 },
-  exerciseConfig: { fontSize: 13, fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
+  exerciseConfig: { fontSize: 13 },
 
   expandedActions: { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 8 },
   startBtnFull: {
-    flex: 1, height: 44, borderRadius: Radius.sm,
+    flex: 1, height: 44, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  startBtnText: { fontSize: 13, fontWeight: '700', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 },
+  startBtnText: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
   editBtn: {
-    height: 44, paddingHorizontal: 16, borderRadius: Radius.sm,
+    height: 44, paddingHorizontal: 16, borderRadius: 10,
     borderWidth: 1, alignItems: 'center', justifyContent: 'center',
   },
-  editBtnText: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  editBtnText: { fontSize: 15, fontWeight: '600' },
 });

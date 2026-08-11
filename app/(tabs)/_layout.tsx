@@ -4,7 +4,6 @@ import { TouchableOpacity, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Radius } from '@/constants/theme';
 import { useColors } from '@/hooks/use-colors';
 
 export default function TabLayout() {
@@ -53,10 +52,15 @@ export default function TabLayout() {
                 style={{
                   width: 52,
                   height: 52,
-                  borderRadius: Radius.md,
+                  borderRadius: 26,
                   backgroundColor: colors.tint,
                   alignItems: 'center',
                   justifyContent: 'center',
+                  elevation: 4,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 4,
                 }}
               >
                 <IconSymbol size={26} name="plus" color="#0F172A" />

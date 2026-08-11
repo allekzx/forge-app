@@ -1,7 +1,6 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { DAY_LABELS_SHORT, ProgramDay, Program } from '@/constants/programs';
-import { Fonts, Radius } from '@/constants/theme';
 import { useColors } from '@/hooks/use-colors';
 import { WeeklyStats, WorkoutTemplateSummary } from '@/services/DatabaseService';
 import { useMemo, useState } from 'react';
@@ -87,7 +86,7 @@ export function WeekProgramWidget({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
@@ -362,7 +361,7 @@ export function WeekProgramWidget({
 }
 
 const styles = StyleSheet.create({
-  container: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, marginBottom: 20, overflow: 'hidden' },
+  container: { borderRadius: 16, marginBottom: 20, overflow: 'hidden' },
 
   header: {
     flexDirection: 'row',
@@ -374,16 +373,16 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1,
+    textTransform: 'uppercase', letterSpacing: 0.6,
     marginBottom: 2,
   },
   programName: { fontSize: 16, fontWeight: '700' },
   title: { fontSize: 16, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 2 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.sm },
-  badgeText: { fontSize: 12, fontWeight: '700', fontFamily: Fonts?.mono },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  badgeText: { fontSize: 12, fontWeight: '700' },
   editBtn: {
-    width: 30, height: 30, borderRadius: Radius.sm,
+    width: 30, height: 30, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -399,10 +398,10 @@ const styles = StyleSheet.create({
   },
   dayCol: { alignItems: 'center', flex: 1, gap: 3 },
   dayPill: {
-    width: 36, height: 36, borderRadius: Radius.sm,
+    width: 36, height: 36, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
   },
-  dayPillText: { textAlign: 'center', fontFamily: Fonts?.mono },
+  dayPillText: { textAlign: 'center' },
   indicator: { height: 12, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 4, height: 4, borderRadius: 2 },
   dayLabel: { fontSize: 9, fontWeight: '500' },
@@ -417,8 +416,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   statItem: {},
-  statLabel: { fontSize: 11, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
-  statValue: { fontSize: 16, fontWeight: '700', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 11, marginBottom: 3 },
+  statValue: { fontSize: 16, fontWeight: '700' },
 
   nextBanner: {
     flexDirection: 'row',
@@ -432,8 +431,8 @@ const styles = StyleSheet.create({
   nextDot: { width: 6, height: 6, borderRadius: 3 },
   nextLabel: { fontSize: 13 },
   nextWorkoutName: { fontWeight: '700' },
-  startBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: Radius.sm },
-  startBtnText: { fontSize: 12, fontWeight: '700', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 },
+  startBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
+  startBtnText: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
 
   ctaRow: {
     flexDirection: 'row',

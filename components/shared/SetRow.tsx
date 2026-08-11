@@ -1,5 +1,4 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts, Radius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useColors } from '@/hooks/use-colors';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -95,7 +94,7 @@ const styles = StyleSheet.create({
   },
   completedRow: {
     backgroundColor: 'rgba(34,197,94,0.05)',
-    borderRadius: Radius.sm,
+    borderRadius: 8,
   },
   indexCell: {
     width: 40,
@@ -105,22 +104,19 @@ const styles = StyleSheet.create({
   index: {
     fontSize: 14,
     fontWeight: '700',
-    fontFamily: Fonts?.mono,
   },
   input: {
-    borderRadius: Radius.sm,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 8,
     fontSize: 14,
     textAlign: 'center',
     minWidth: 0,
-    fontFamily: Fonts?.mono,
-    fontVariant: ['tabular-nums'],
   },
   checkBtn: {
     width: 36,
     height: 36,
-    borderRadius: Radius.sm,
+    borderRadius: 10,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
