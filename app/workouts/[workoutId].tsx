@@ -506,8 +506,9 @@ export default function WorkoutInProgressScreen() {
               <FlatList
                 data={grouped}
                 keyExtractor={item => item.exerciseId}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[styles.listContent, reorderMode && { gap: 10 }]}
                 showsVerticalScrollIndicator={false}
+                extraData={grouped.length}
                 ListFooterComponent={
                   <View style={styles.footerContainer}>
                     {!isFinished && (
@@ -564,11 +565,22 @@ export default function WorkoutInProgressScreen() {
                     </View>
                   </View>
                 }
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <View style={[
                     styles.exerciseCard,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                    reorderMode && { borderWidth: 1, borderColor: colors.tint + '40' },
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderLeftWidth: StyleSheet.hairlineWidth,
+                      borderRightWidth: StyleSheet.hairlineWidth,
+                      borderBottomWidth: index === grouped.length - 1 ? StyleSheet.hairlineWidth : 0,
+                      borderTopLeftRadius: index === 0 ? Radius.md : 0,
+                      borderTopRightRadius: index === 0 ? Radius.md : 0,
+                      borderBottomLeftRadius: index === grouped.length - 1 ? Radius.md : 0,
+                      borderBottomRightRadius: index === grouped.length - 1 ? Radius.md : 0,
+                    },
+                    reorderMode && { borderWidth: 1, borderColor: colors.tint + '40', borderRadius: Radius.md, marginBottom: 8 },
                   ]}>
                     <View style={styles.exerciseCardHeader}>
                       {reorderMode && (
@@ -646,7 +658,7 @@ export default function WorkoutInProgressScreen() {
                       <View style={{ width: 88 }} />
                     </View>
 
-                    {item.sets.map((set) => {
+                    {item.sets.map((set, si) => {
                       const isCompleted = !!set.completed_at;
                       const showRestTimer = activeRest?.setId === set.id;
                       return (
@@ -654,7 +666,8 @@ export default function WorkoutInProgressScreen() {
                           <View
                             style={[
                               styles.setRow,
-                              isCompleted && { backgroundColor: colors.success + '0D', borderRadius: 8 },
+                              si > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+                              isCompleted && { backgroundColor: colors.success + '0D' },
                             ]}
                           >
                             <TouchableOpacity
@@ -759,7 +772,7 @@ export default function WorkoutInProgressScreen() {
                             >
                               <IconSymbol
                                 name={isCompleted ? 'checkmark' : 'checkmark'}
-                                size={14}
+                                size={16}
                                 color={isCompleted ? '#0F172A' : colors.icon}
                               />
                             </TouchableOpacity>
@@ -1032,9 +1045,9 @@ const styles = StyleSheet.create({
   progressText: { fontSize: 14, fontWeight: '600', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
 
 
-  listContent: { paddingBottom: 160, gap: 12 },
+  listContent: { paddingBottom: 160, gap: 0 },
 
-  exerciseCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 12 },
+  exerciseCard: { padding: 12 },
   exerciseCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   exerciseTitleGroup: { flex: 1 },
   restHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 2 },
@@ -1046,7 +1059,7 @@ const styles = StyleSheet.create({
   setHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
   setHeaderCell: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginRight: 8 },
 
-  setRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, paddingHorizontal: 2, paddingVertical: 4 },
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 2, paddingVertical: 8 },
   setIndexCell: { alignItems: 'center', justifyContent: 'center', gap: 2 },
   setIndexNum: { fontSize: 13, fontWeight: '700', fontFamily: Fonts?.mono },
   setTypePill: { borderRadius: Radius.sm, paddingHorizontal: 4, paddingVertical: 1, minWidth: 18, alignItems: 'center' },
@@ -1056,17 +1069,18 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 8,
-    fontSize: 14,
+    fontSize: 19,
+    fontWeight: '800',
     textAlign: 'center',
     minWidth: 0,
     fontFamily: Fonts?.mono,
     fontVariant: ['tabular-nums'],
   },
-  setInputReadOnly: { fontSize: 14, fontWeight: '600', textAlign: 'center', fontFamily: Fonts?.mono },
+  setInputReadOnly: { fontSize: 19, fontWeight: '800', textAlign: 'center', fontFamily: Fonts?.mono },
   prevHint: { fontSize: 11, textAlign: 'center', marginTop: 2, opacity: 0.55, fontFamily: Fonts?.mono },
   doneButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 40,
     borderRadius: Radius.sm,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -1074,7 +1088,7 @@ const styles = StyleSheet.create({
   },
   trashButton: {
     width: 28,
-    height: 36,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },

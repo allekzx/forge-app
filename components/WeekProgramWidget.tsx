@@ -129,12 +129,9 @@ export function WeekProgramWidget({
           const done = activeDays[i];
           const planned = schedule[i];
 
-          let pillBg: string | undefined;
-          if (planned) {
-            pillBg = isToday ? colors.tint + '50' : colors.tint + '20';
-          } else if (done) {
-            pillBg = colors.success + '18';
-          }
+          // Rack-bar fill: loaded (done) fills solid, planned shows a tinted top band, rest stays an empty slot.
+          const barFillColor = done ? colors.success : planned ? colors.tint : undefined;
+          const barBorderColor = isToday ? colors.text + '60' : colors.border;
 
           const pillTextColor = planned
             ? colors.tint
@@ -148,30 +145,21 @@ export function WeekProgramWidget({
               activeOpacity={editMode ? 0.7 : 1}
               disabled={!editMode}
             >
-              <View style={[
-                styles.dayPill,
-                pillBg ? { backgroundColor: pillBg } : {},
-                done && !planned ? { borderColor: colors.success + '70', borderWidth: 1 } : {},
-                isToday && !planned && !done ? { borderColor: colors.text + '50', borderWidth: 1 } : {},
-              ]}>
-                <ThemedText
-                  style={[styles.dayPillText, {
-                    color: pillTextColor,
-                    fontWeight: planned ? '700' : '500',
-                    fontSize: planned ? 9 : 10,
-                  }]}
-                  numberOfLines={1}
-                >
-                  {planned ? planned.label.slice(0, 2) : label}
-                </ThemedText>
+              <View style={[styles.dayBar, { borderColor: barBorderColor, borderWidth: isToday ? 1.5 : 1 }]}>
+                {barFillColor && (
+                  <View style={[
+                    styles.dayBarFill,
+                    { backgroundColor: barFillColor, opacity: done ? 1 : 0.28, height: done ? '100%' : '38%' },
+                  ]} />
+                )}
               </View>
 
-              <View style={styles.indicator}>
-                {done
-                  ? <IconSymbol name="checkmark.circle.fill" size={11} color={colors.success} />
-                  : <View style={[styles.dot, { backgroundColor: isToday ? colors.tint : colors.icon + '30' }]} />
-                }
-              </View>
+              <ThemedText
+                style={[styles.dayPillText, { color: pillTextColor, fontWeight: planned ? '700' : '500' }]}
+                numberOfLines={1}
+              >
+                {planned ? planned.label.slice(0, 2) : ''}
+              </ThemedText>
 
               <ThemedText style={[styles.dayLabel, { color: isToday ? colors.text : colors.icon + '80' }]}>
                 {label}
@@ -397,14 +385,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 14,
   },
-  dayCol: { alignItems: 'center', flex: 1, gap: 3 },
-  dayPill: {
-    width: 36, height: 36, borderRadius: Radius.sm,
-    alignItems: 'center', justifyContent: 'center',
+  dayCol: { alignItems: 'center', flex: 1, gap: 4 },
+  dayBar: {
+    width: 26, height: 46, borderRadius: Radius.sm,
+    justifyContent: 'flex-end', overflow: 'hidden',
   },
-  dayPillText: { textAlign: 'center', fontFamily: Fonts?.mono },
-  indicator: { height: 12, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 4, height: 4, borderRadius: 2 },
+  dayBarFill: { width: '100%' },
+  dayPillText: { textAlign: 'center', fontFamily: Fonts?.mono, fontSize: 9, minHeight: 11 },
   dayLabel: { fontSize: 9, fontWeight: '500' },
   todayDot: { width: 4, height: 4, borderRadius: 2 },
 

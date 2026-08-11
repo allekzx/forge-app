@@ -244,19 +244,22 @@ export default function HomeScreen() {
               <ThemedText style={[styles.emptyText, { color: colors.icon }]}>Créer ma première routine</ThemedText>
             </TouchableOpacity>
           ) : (
-            orderedTemplates.map((tpl) => (
-              <TemplateCard
-                key={tpl.id}
-                tpl={tpl}
-                displayName={programLabels.get(tpl.id) ?? tpl.name}
-                expanded={expandedId === tpl.id}
-                detail={detailsCache.get(tpl.id) ?? null}
-                colors={colors}
-                onToggle={() => handleToggleExpand(tpl)}
-                onStart={() => handleStartFromTemplate(tpl.id)}
-                onEdit={() => router.push({ pathname: '/workouts/template', params: { templateId: tpl.id } })}
-              />
-            ))
+            <View style={[styles.ledger, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {orderedTemplates.map((tpl, i) => (
+                <TemplateCard
+                  key={tpl.id}
+                  tpl={tpl}
+                  displayName={programLabels.get(tpl.id) ?? tpl.name}
+                  expanded={expandedId === tpl.id}
+                  detail={detailsCache.get(tpl.id) ?? null}
+                  colors={colors}
+                  isFirst={i === 0}
+                  onToggle={() => handleToggleExpand(tpl)}
+                  onStart={() => handleStartFromTemplate(tpl.id)}
+                  onEdit={() => router.push({ pathname: '/workouts/template', params: { templateId: tpl.id } })}
+                />
+              ))}
+            </View>
           )}
         </View>
 
@@ -266,13 +269,14 @@ export default function HomeScreen() {
 }
 
 function TemplateCard({
-  tpl, displayName, expanded, detail, colors, onToggle, onStart, onEdit,
+  tpl, displayName, expanded, detail, colors, isFirst, onToggle, onStart, onEdit,
 }: {
   tpl: WorkoutTemplateSummary;
   displayName: string;
   expanded: boolean;
   detail: TemplateDetail | null;
   colors: any;
+  isFirst: boolean;
   onToggle: () => void;
   onStart: () => void;
   onEdit: () => void;
@@ -290,27 +294,17 @@ function TemplateCard({
   const chevronRotate = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
 
   return (
-    <View style={[styles.templateCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.templateCard, !isFirst && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
       <TouchableOpacity style={styles.templateHeader} onPress={onToggle} activeOpacity={0.7}>
+        <View style={[styles.templateStamp, { borderColor: colors.tint }]}>
+          <ThemedText style={[styles.templateStampText, { color: colors.tint }]}>{tpl.exerciseCount}</ThemedText>
+        </View>
         <View style={styles.templateInfo}>
           <ThemedText type="defaultSemiBold" style={styles.templateName}>{displayName}</ThemedText>
           <View style={styles.templateMetaRow}>
             <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>
-              {tpl.exerciseCount} exercice{tpl.exerciseCount > 1 ? 's' : ''}
+              {tpl.lastPerformedAt ? formatLastPerformed(tpl.lastPerformedAt) : 'Pas encore effectuée'}
             </ThemedText>
-            {tpl.lastPerformedAt ? (
-              <>
-                <ThemedText style={[styles.templateMetaDot, { color: colors.icon }]}> · </ThemedText>
-                <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>
-                  {formatLastPerformed(tpl.lastPerformedAt)}
-                </ThemedText>
-              </>
-            ) : (
-              <>
-                <ThemedText style={[styles.templateMetaDot, { color: colors.icon }]}> · </ThemedText>
-                <ThemedText style={[styles.templateMeta, { color: colors.icon }]}>Pas encore effectuée</ThemedText>
-              </>
-            )}
           </View>
         </View>
         <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
@@ -319,7 +313,7 @@ function TemplateCard({
       </TouchableOpacity>
 
       {expanded && (
-        <View style={[styles.expandedContent, { borderTopColor: colors.background }]}>
+        <View style={[styles.expandedContent, { borderTopColor: colors.border }]}>
           {detail ? (
             <>
               {detail.exercises.map((ex, i) => (
@@ -409,15 +403,21 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: 14, fontWeight: '500' },
 
-  templateCard: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  ledger: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  templateCard: {},
   templateHeader: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     justifyContent: 'space-between', padding: 14,
   },
+  templateStamp: {
+    width: 34, height: 34, borderRadius: Radius.sm, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0, flexGrow: 0,
+  },
+  templateStampText: { fontSize: 14, fontWeight: '800', fontFamily: Fonts?.mono },
   templateInfo: { flex: 1, marginRight: 8 },
   templateName: { fontSize: 15 },
   templateMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap' },
-  templateMeta: { fontSize: 13 },
+  templateMeta: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 },
   templateMetaDot: { fontSize: 13 },
 
   expandedContent: { borderTopWidth: StyleSheet.hairlineWidth, paddingBottom: 4 },

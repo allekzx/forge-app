@@ -184,7 +184,7 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor, borderColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: bgColor, borderColor: colors.tint }]}>
       <View style={styles.top}>
         <Text style={[styles.label, { color: colors.icon }]}>REPOS</Text>
         {editMode ? (
@@ -226,10 +226,14 @@ export function RestTimer({ initialDuration, onFinish, onSkip, onAdjust }: Props
 }
 
 const styles = StyleSheet.create({
-  container: { borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 12, marginBottom: 6, gap: 8 },
+  container: {
+    borderRadius: 0, borderTopWidth: 2, borderBottomWidth: 2,
+    marginHorizontal: -12, paddingHorizontal: 12,
+    paddingVertical: 14, marginVertical: 6, gap: 10,
+  },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
-  time: { fontSize: 22, fontWeight: 'bold', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
+  time: { fontSize: 38, fontWeight: '800', fontFamily: Fonts?.mono, fontVariant: ['tabular-nums'] },
   timeInput: { minWidth: 60, textAlign: 'right', padding: 0 },
   barBg: { height: 4, borderRadius: 0, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 0 },
