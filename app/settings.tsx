@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +14,7 @@ import {
   resetAllWorkoutData,
   saveUserSetting,
 } from '@/services/DatabaseService';
+import { Alert } from '@/utils/alert';
 import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {

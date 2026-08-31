@@ -42,7 +42,30 @@ Tu coordonnes 3 agents spécialisés et tu t'assures de la cohérence globale du
 ## État du projet
 > 📝 Mis à jour le 2026-08-31
 
-- **Dernière session** : Orchestrateur session 11 — nouveau programme Upper/Lower A-B (seed_version 6) + feature superset
+- **Dernière session** : Orchestrateur session 12 — audit des workflows utilisateur, correction de bugs de navigation/affichage
+  - **Bug critique** — `Alert.alert()` de `react-native-web` est un stub no-op (`static alert() {}`) : sur web, TOUTE
+    confirmation (suppression, reset des données, garde pause/abandon de séance) ne faisait rien silencieusement.
+    Pour la garde de séance active (`app/workouts/[workoutId].tsx`), ça bloquait carrément la navigation (back,
+    tab bar) sans jamais résoudre — équivalent à un blocage total sur web tant qu'une séance est active.
+    Fix : nouveau module `utils/alert.ts` (natif, réexporte `Alert` de RN) + `utils/alert.web.ts` (implémente la
+    même signature `alert(title, message, buttons)` via `window.alert`/`window.confirm`, résolu automatiquement par
+    Metro sur web comme `hooks/use-color-scheme.web.ts`). Les 7 fichiers qui appelaient `Alert.alert` importent
+    désormais `Alert` depuis `@/utils/alert` au lieu de `'react-native'` (aucun autre changement nécessaire).
+  - **Bug de navigation en boucle** — `app/workouts/exercise-picker.tsx` utilisait `router.navigate(...)` pour
+    revenir à l'écran précédent au lieu de `router.back()`, ce qui empilait une NOUVELLE instance de l'écran
+    plutôt que de dépiler l'existant (vérifié : `history.length` passait de 4 à 5 au lieu de redescendre). Un
+    aller-retour routine/séance ↔ sélecteur d'exercice grossissait la pile à chaque fois. Fix : `router.back()`.
+  - **Confirmation superflue** — la mini tab bar de la séance live (conçue pour être "accessible même en
+    fullScreenModal") utilisait `router.replace()`, ce qui déclenchait quand même la garde pause/abandon à
+    chaque changement d'onglet. Fix : ref `skipLeaveConfirmRef` positionnée juste avant le `replace` pour
+    laisser passer la navigation volontaire, tout en gardant la garde active pour un retour arrière accidentel.
+  - **Affichage** — l'onglet racine "Bibliothèque d'exercices" affichait un chevron retour alors que c'est un
+    onglet de la tab bar (rien vers quoi "revenir"). Masqué hors mode sélecteur de routine. Le libellé de l'onglet
+    "Mesures" ne correspondait pas au titre affiché sur l'écran lui-même ("Progression") ni au libellé déjà
+    utilisé par la mini tab bar de séance — harmonisé sur "Progression" dans `app/(tabs)/_layout.tsx`.
+  - Vérifié en live (expo web + Playwright) : tsc et lint propres, aucune régression sur les flux testés
+    (démarrage/fin de séance, historique, exercices, réglages, sélection de programme).
+- **Session précédente** : Orchestrateur session 11 — nouveau programme Upper/Lower A-B (seed_version 6) + feature superset
   - Agent Database — `DEFAULT_TEMPLATES` (seed_upper/seed_upper_b/seed_lower/seed_legs) réécrits pour coller au nouveau
     programme (mollets debout/assis ajoutés, Bulgarian split squat, ratio biceps/triceps équilibré, abdos en Lower B,
     abducteur/adducteur réduits à 1×/semaine). `Lower A` est désormais squat-focus et `Lower B` deadlift-focus

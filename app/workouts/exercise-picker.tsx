@@ -63,14 +63,14 @@ export default function ExercisePickerScreen() {
   });
 
   const goBack = useCallback(() => {
-    if (workoutId) {
-      router.navigate({ pathname: '/workouts/[workoutId]', params: { workoutId } });
-    } else if (templateId) {
-      router.navigate({ pathname: '/workouts/template', params: { templateId } });
-    } else {
-      router.back();
-    }
-  }, [workoutId, templateId, router]);
+    // This screen is always pushed on top of the workout/template screen that
+    // opened it, so a plain back() returns to that exact existing instance.
+    // router.navigate() was used previously but pushes a *new* instance
+    // instead of popping this one, growing the history stack on every
+    // open/close round-trip (each further back-press then re-shows the
+    // picker instead of leaving the screen).
+    router.back();
+  }, [router]);
 
   const handleSelect = useCallback(
     async (exerciseId: string) => {

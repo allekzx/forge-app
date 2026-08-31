@@ -20,7 +20,6 @@ import {
 } from '@/services/DatabaseService';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -34,6 +33,7 @@ import {
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert } from '@/utils/alert';
 
 // ─── Volume Bar Chart ─────────────────────────────────────────────────────────
 

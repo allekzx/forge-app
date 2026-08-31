@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert } from '@/utils/alert';
 
 import { ActiveWorkoutBanner } from '@/components/shared/ActiveWorkoutBanner';
 import { ErrorView } from '@/components/shared/ErrorView';

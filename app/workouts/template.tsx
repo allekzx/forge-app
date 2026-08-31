@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -18,6 +17,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SET_TYPE_LABELS, SET_TYPE_SHORT } from '@/constants/translations';
+import { Alert } from '@/utils/alert';
 import { useColors } from '@/hooks/use-colors';
 import {
   TemplateExerciseSet,

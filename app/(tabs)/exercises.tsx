@@ -179,9 +179,16 @@ export default function ExerciseLibraryScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-          <IconSymbol name="chevron.left" size={28} color={colors.text} />
-        </TouchableOpacity>
+        {isTemplatePicker ? (
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <IconSymbol name="chevron.left" size={28} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          // Tab root — nothing to go "back" to, so no back chevron here.
+          // Fixed width matches the chevron button's footprint (28px icon + 8px padding × 2)
+          // so the centered title doesn't shift toward the "+" button on the right.
+          <View style={{ width: 44 }} />
+        )}
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {isTemplatePicker ? 'Ajouter des exercices' : 'Bibliothèque d\'exercices'}
         </Text>

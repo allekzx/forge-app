@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Keyboard, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Keyboard, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert } from '@/utils/alert';
 
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
@@ -126,11 +127,19 @@ export default function WorkoutInProgressScreen() {
   const [liveSetTypePicker, setLiveSetTypePicker] = useState<{ setId: string; currentType: string } | null>(null);
   const [reorderMode, setReorderMode] = useState(false);
   const [exerciseOrder, setExerciseOrder] = useState<string[] | null>(null);
+  // Set right before navigating via the mini tab bar — the séance is already
+  // saved set-by-set, so a deliberate tab switch shouldn't be intercepted by
+  // the same "pause/discard" guard meant for accidental back gestures.
+  const skipLeaveConfirmRef = useRef(false);
 
   // Intercepte le retour arrière pour protéger la séance en cours
   useEffect(() => {
     if (isFinished) return;
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (skipLeaveConfirmRef.current) {
+        skipLeaveConfirmRef.current = false;
+        return;
+      }
       const hasCompletedSets = session?.sets.some(s => s.completed_at !== null);
       e.preventDefault();
       if (!hasCompletedSets) {
@@ -856,7 +865,10 @@ export default function WorkoutInProgressScreen() {
                   <TouchableOpacity
                     key={tab.route}
                     style={styles.miniTabItem}
-                    onPress={() => router.replace(tab.route as any)}
+                    onPress={() => {
+                      skipLeaveConfirmRef.current = true;
+                      router.replace(tab.route as any);
+                    }}
                     activeOpacity={0.7}
                   >
                     <IconSymbol name={tab.icon} size={20} color={colors.icon} />
