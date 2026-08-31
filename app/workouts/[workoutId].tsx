@@ -46,6 +46,7 @@ type GroupedExercise = {
   name: string;
   muscle: string;
   equipment: string;
+  supersetGroupId: string | null;
   sets: WorkoutSetRow[];
 };
 
@@ -228,6 +229,7 @@ export default function WorkoutInProgressScreen() {
           name: s.name,
           muscle: s.muscle,
           equipment: s.equipment,
+          supersetGroupId: s.superset_group_id,
           sets: [],
         });
       }
@@ -564,12 +566,24 @@ export default function WorkoutInProgressScreen() {
                     </View>
                   </View>
                 }
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => {
+                  const isInSuperset = !!item.supersetGroupId;
+                  const linkedWithNext = isInSuperset && grouped[index + 1]?.supersetGroupId === item.supersetGroupId;
+                  return (
                   <View style={[
                     styles.exerciseCard,
                     { backgroundColor: colors.card },
                     reorderMode && { borderWidth: 1, borderColor: colors.tint + '40' },
+                    isInSuperset && { borderLeftWidth: 3, borderLeftColor: '#F59E0B' },
                   ]}>
+                    {isInSuperset && (
+                      <View style={[styles.supersetBadge, { backgroundColor: '#F59E0B20' }]}>
+                        <IconSymbol name="link" size={11} color="#F59E0B" />
+                        <Text style={[styles.supersetBadgeText, { color: '#F59E0B' }]}>
+                          {linkedWithNext ? `SUPERSET — enchaîne avec ${grouped[index + 1].name}` : 'SUPERSET'}
+                        </Text>
+                      </View>
+                    )}
                     <View style={styles.exerciseCardHeader}>
                       {reorderMode && (
                         <IconSymbol name="line.3.horizontal" size={18} color={colors.icon} style={{ marginRight: 8, opacity: 0.5 }} />
@@ -805,7 +819,8 @@ export default function WorkoutInProgressScreen() {
                     )}
                     </>}
                   </View>
-                )}
+                  );
+                }}
               />
             )}
 
@@ -1035,6 +1050,17 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: 160, gap: 12 },
 
   exerciseCard: { borderRadius: 14, padding: 12 },
+  supersetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  supersetBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
   exerciseCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   exerciseTitleGroup: { flex: 1 },
   restHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 2 },

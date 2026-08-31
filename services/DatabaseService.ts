@@ -99,7 +99,7 @@ export const initDatabase = async (): Promise<void> => {
 // ─── Default template seed ───────────────────────────────────────────────────
 
 type SeedSet = { type: 'normal' | 'warmup' | 'dropset' | 'failure'; reps: number; weight: number; rest: number };
-type SeedEx  = { exId: string; sets: SeedSet[] };
+type SeedEx  = { exId: string; sets: SeedSet[]; supersetGroup?: string };
 type SeedTpl = { id: string; name: string; exercises: SeedEx[] };
 
 const DEFAULT_TEMPLATES: SeedTpl[] = [
@@ -193,80 +193,107 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
     ],
   },
   {
+    // Lower B — deadlift-focused (weekSchedule label "Lower B")
     id: 'seed_legs', name: 'Legs',
     exercises: [
-      { exId: 'Barbell_Squat',
+      { exId: 'Barbell_Deadlift',
         sets: [
-          { type:'warmup', reps:10, weight:0,  rest:60  },
-          { type:'normal', reps:8,  weight:0,  rest:120 },
-          { type:'normal', reps:8,  weight:0,  rest:120 },
-          { type:'normal', reps:8,  weight:0,  rest:120 },
+          { type:'warmup', reps:7,  weight:0,  rest:60  },
+          { type:'normal', reps:8,  weight:40, rest:180 },
+          { type:'normal', reps:8,  weight:40, rest:180 },
+          { type:'normal', reps:7,  weight:40, rest:180 },
         ]},
       { exId: 'Leg_Press',
         sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:10, weight:93, rest:120 },
+          { type:'normal', reps:9,  weight:93, rest:120 },
+          { type:'normal', reps:8,  weight:93, rest:120 },
         ]},
-      { exId: 'wger_1366',
+      { exId: 'Seated_Leg_Curl',
         sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:8, weight:64, rest:90 },
+          { type:'normal', reps:8, weight:64, rest:90 },
+          { type:'normal', reps:8, weight:59, rest:90 },
         ]},
-      { exId: 'Stiff-Legged_Dumbbell_Deadlift',
+      { exId: 'wger_206',
         sets: [
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
-          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:12, weight:14, rest:90 },
+          { type:'normal', reps:11, weight:14, rest:90 },
+          { type:'normal', reps:10, weight:14, rest:90 },
         ]},
-      { exId: 'Hyperextensions_(Back_Extensions)',
+      { exId: 'Seated_Calf_Raise',
         sets: [
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:15, weight:0, rest:60 },
+          { type:'normal', reps:14, weight:0, rest:60 },
+          { type:'normal', reps:13, weight:0, rest:60 },
           { type:'normal', reps:12, weight:0, rest:60 },
         ]},
       { exId: 'Thigh_Abductor',
         sets: [
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
+          { type:'normal', reps:15, weight:36, rest:60 },
+          { type:'normal', reps:15, weight:36, rest:60 },
         ]},
       { exId: 'Thigh_Adductor',
         sets: [
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
-          { type:'normal', reps:15, weight:0, rest:60 },
+          { type:'normal', reps:15, weight:36, rest:60 },
+          { type:'normal', reps:15, weight:36, rest:60 },
+        ]},
+      { exId: 'Plank',
+        sets: [
+          { type:'normal', reps:60, weight:0, rest:60 },
         ]},
     ],
   },
   {
+    // Upper A
     id: 'seed_upper', name: 'Upper',
     exercises: [
       { exId: 'Smith_Machine_Incline_Bench_Press',
         sets: [
           { type:'warmup', reps:10, weight:0,  rest:60  },
-          { type:'normal', reps:8,  weight:35, rest:120 },
+          { type:'normal', reps:10, weight:35, rest:120 },
+          { type:'normal', reps:9,  weight:38, rest:120 },
           { type:'normal', reps:8,  weight:40, rest:120 },
-          { type:'normal', reps:8,  weight:35, rest:120 },
+          { type:'normal', reps:8,  weight:38, rest:120 },
         ]},
       { exId: 'Chin-Up',
         sets: [
-          { type:'normal', reps:10, weight:0, rest:120 },
-          { type:'normal', reps:8,  weight:0, rest:120 },
-          { type:'normal', reps:7,  weight:0, rest:120 },
+          { type:'normal', reps:8, weight:0, rest:120 },
+          { type:'normal', reps:7, weight:0, rest:120 },
+          { type:'normal', reps:6, weight:0, rest:120 },
         ]},
       { exId: 'One-Arm_Dumbbell_Row',
         sets: [
-          { type:'normal', reps:8, weight:20, rest:90 },
-          { type:'normal', reps:8, weight:20, rest:90 },
-          { type:'normal', reps:8, weight:18, rest:90 },
+          { type:'normal', reps:10, weight:20, rest:90 },
+          { type:'normal', reps:9,  weight:20, rest:90 },
+          { type:'normal', reps:8,  weight:18, rest:90 },
         ]},
       { exId: 'wger_1730',
         sets: [
+          { type:'normal', reps:12, weight:9, rest:60 },
+          { type:'normal', reps:11, weight:9, rest:60 },
           { type:'normal', reps:10, weight:9, rest:60 },
-          { type:'normal', reps:10, weight:9, rest:60 },
-          { type:'normal', reps:10, weight:9, rest:60 },
+        ]},
+      { exId: 'Reverse_Machine_Flyes',
+        sets: [
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:10, weight:0, rest:60 },
+        ]},
+      // Superset : pushdown à la poulie haute enchaîné avec extension nuque à la poulie basse
+      { exId: 'Triceps_Pushdown',
+        supersetGroup: 'upper_a_triceps_ss',
+        sets: [
+          { type:'normal', reps:9, weight:0, rest:15 },
+          { type:'normal', reps:9, weight:0, rest:15 },
+          { type:'normal', reps:8, weight:0, rest:15 },
+        ]},
+      { exId: 'Cable_Rope_Overhead_Triceps_Extension',
+        supersetGroup: 'upper_a_triceps_ss',
+        sets: [
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:9, weight:0, rest:90 },
+          { type:'normal', reps:8, weight:0, rest:90 },
         ]},
       { exId: 'Hammer_Curls',
         sets: [
@@ -274,14 +301,16 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
           { type:'normal', reps:10, weight:14, rest:90 },
           { type:'normal', reps:8,  weight:14, rest:90 },
         ]},
-      { exId: 'Machine_Triceps_Extension',
+      { exId: 'Incline_Dumbbell_Curl',
         sets: [
-          { type:'normal',  reps:10, weight:35, rest:90 },
-          { type:'dropset', reps:10, weight:25, rest:90 },
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:10, weight:0, rest:60 },
         ]},
     ],
   },
   {
+    // Upper B
     id: 'seed_upper_b', name: 'Upper B',
     exercises: [
       { exId: 'Leverage_Chest_Press',
@@ -290,13 +319,19 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
           { type:'normal', reps:10, weight:0, rest:90 },
           { type:'normal', reps:10, weight:0, rest:90 },
         ]},
-      { exId: 'Dumbbell_Flyes',
+      { exId: 'Butterfly',
         sets: [
           { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:10, weight:0, rest:60 },
         ]},
       { exId: 'Wide-Grip_Lat_Pulldown',
+        sets: [
+          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:10, weight:0, rest:90 },
+        ]},
+      { exId: 'Seated_Cable_Rows',
         sets: [
           { type:'normal', reps:10, weight:0, rest:90 },
           { type:'normal', reps:10, weight:0, rest:90 },
@@ -311,8 +346,8 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
       { exId: 'Machine_Preacher_Curls',
         sets: [
           { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
-          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:11, weight:0, rest:60 },
+          { type:'normal', reps:10, weight:0, rest:60 },
         ]},
       { exId: 'Dips_-_Triceps_Version',
         sets: [
@@ -323,54 +358,53 @@ const DEFAULT_TEMPLATES: SeedTpl[] = [
     ],
   },
   {
+    // Lower A — squat-focused (weekSchedule label "Lower A")
     id: 'seed_lower', name: 'Lower',
     exercises: [
-      { exId: 'Barbell_Deadlift',
+      { exId: 'Barbell_Squat',
         sets: [
-          { type:'warmup', reps:7,  weight:0,  rest:60  },
-          { type:'normal', reps:8,  weight:40, rest:180 },
-          { type:'normal', reps:8,  weight:40, rest:180 },
-          { type:'normal', reps:7,  weight:40, rest:180 },
+          { type:'warmup', reps:10, weight:0, rest:60  },
+          { type:'normal', reps:10, weight:0, rest:120 },
+          { type:'normal', reps:9,  weight:0, rest:120 },
+          { type:'normal', reps:8,  weight:0, rest:120 },
+          { type:'normal', reps:8,  weight:0, rest:120 },
         ]},
       { exId: 'Leg_Press',
         sets: [
-          { type:'normal', reps:8, weight:93, rest:120 },
-          { type:'normal', reps:8, weight:93, rest:120 },
-          { type:'normal', reps:8, weight:93, rest:120 },
+          { type:'normal', reps:12, weight:0, rest:90 },
+          { type:'normal', reps:11, weight:0, rest:90 },
+          { type:'normal', reps:10, weight:0, rest:90 },
         ]},
-      { exId: 'Seated_Leg_Curl',
+      { exId: 'Split_Squat_with_Dumbbells',
         sets: [
-          { type:'normal', reps:8, weight:64, rest:90 },
-          { type:'normal', reps:8, weight:64, rest:90 },
-          { type:'normal', reps:8, weight:59, rest:90 },
+          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:9,  weight:0, rest:90 },
+          { type:'normal', reps:8,  weight:0, rest:90 },
         ]},
-      { exId: 'Dumbbell_Lunges',
+      { exId: 'Stiff-Legged_Barbell_Deadlift',
         sets: [
-          { type:'normal', reps:8, weight:14, rest:90 },
-          { type:'normal', reps:8, weight:14, rest:90 },
-          { type:'normal', reps:8, weight:14, rest:90 },
+          { type:'normal', reps:10, weight:0, rest:90 },
+          { type:'normal', reps:9,  weight:0, rest:90 },
+          { type:'normal', reps:8,  weight:0, rest:90 },
+        ]},
+      { exId: 'Standing_Calf_Raises',
+        sets: [
+          { type:'normal', reps:15, weight:0, rest:60 },
+          { type:'normal', reps:14, weight:0, rest:60 },
+          { type:'normal', reps:13, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
+        ]},
+      { exId: 'Hyperextensions_(Back_Extensions)',
+        sets: [
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
+          { type:'normal', reps:12, weight:0, rest:60 },
         ]},
       { exId: 'Ab_Crunch_Machine',
         sets: [
-          { type:'normal', reps:8, weight:55, rest:60 },
-          { type:'normal', reps:8, weight:55, rest:60 },
-          { type:'normal', reps:8, weight:55, rest:60 },
-        ]},
-      { exId: 'Thigh_Abductor',
-        sets: [
-          { type:'normal', reps:8, weight:36, rest:60 },
-          { type:'normal', reps:8, weight:36, rest:60 },
-          { type:'normal', reps:8, weight:36, rest:60 },
-        ]},
-      { exId: 'Thigh_Adductor',
-        sets: [
-          { type:'normal', reps:10, weight:36, rest:60 },
-          { type:'normal', reps:10, weight:36, rest:60 },
-          { type:'normal', reps:9,  weight:40, rest:60 },
-        ]},
-      { exId: 'Plank',
-        sets: [
-          { type:'normal', reps:60, weight:0, rest:60 },
+          { type:'normal', reps:15, weight:0, rest:60 },
+          { type:'normal', reps:14, weight:0, rest:60 },
+          { type:'normal', reps:13, weight:0, rest:60 },
         ]},
     ],
   },
@@ -417,14 +451,15 @@ async function seedDefaultTemplates(database: SQLite.SQLiteDatabase): Promise<vo
       const firstNormal = ex.sets.find(s => s.type === 'normal');
       await database.runAsync(
         `INSERT INTO workout_template_exercises
-         (id, template_id, exercise_id, sets, reps, rest_seconds, order_index, default_weight_kg)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, template_id, exercise_id, sets, reps, rest_seconds, order_index, default_weight_kg, superset_group_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         teId, tpl.id, ex.exId,
         ex.sets.length,
         firstNormal?.reps ?? ex.sets[0].reps,
         firstNormal?.rest ?? ex.sets[0].rest,
         ei + 1,
-        firstNormal?.weight ?? 0
+        firstNormal?.weight ?? 0,
+        ex.supersetGroup ?? null
       );
       for (let si = 0; si < ex.sets.length; si++) {
         const s = ex.sets[si];
@@ -523,6 +558,7 @@ const _doInit = async () => {
 
   const wteCols = await database.getAllAsync<{ name: string }>(`SELECT name FROM pragma_table_info('workout_template_exercises')`);
   if (!wteCols.some(r => r.name === 'default_weight_kg')) await database.execAsync('ALTER TABLE workout_template_exercises ADD COLUMN default_weight_kg REAL');
+  if (!wteCols.some(r => r.name === 'superset_group_id')) await database.execAsync('ALTER TABLE workout_template_exercises ADD COLUMN superset_group_id TEXT');
 
   const exerciseCols = await database.getAllAsync<{ name: string }>(`SELECT name FROM pragma_table_info('exercises')`);
   if (!exerciseCols.some(r => r.name === 'is_custom')) await database.execAsync('ALTER TABLE exercises ADD COLUMN is_custom INTEGER DEFAULT 0');
@@ -531,6 +567,7 @@ const _doInit = async () => {
   if (!setsCols.some(r => r.name === 'set_type')) await database.execAsync("ALTER TABLE workout_sets ADD COLUMN set_type TEXT DEFAULT 'normal'");
 
   const workoutExerciseCols = await database.getAllAsync<{ name: string }>(`SELECT name FROM pragma_table_info('workout_exercises')`);
+  if (!workoutExerciseCols.some(r => r.name === 'superset_group_id')) await database.execAsync('ALTER TABLE workout_exercises ADD COLUMN superset_group_id TEXT');
   if (!workoutExerciseCols.some(r => r.name === 'order_index')) {
     await database.execAsync('ALTER TABLE workout_exercises ADD COLUMN order_index INTEGER DEFAULT 0');
     // Backfill: assign sequential order based on rowid (insertion order)
@@ -573,8 +610,8 @@ const _doInit = async () => {
     }
   }
 
-  // Seed default templates — v5 : Legs — Machine abdos remplacée par Extensions lombaires
-  const SEED_VERSION = 5;
+  // Seed default templates — v6 : nouveau programme Upper/Lower A-B (mollets, superset triceps, Bulgarian split squat...)
+  const SEED_VERSION = 6;
   const seedVerRow = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM user_settings WHERE key = 'seed_version'"
   );
@@ -619,6 +656,9 @@ const _doInit = async () => {
   );
 
   // Migrate existing seed templates to use correct exercise IDs (idempotent via UPDATE)
+  // Note: only Push/Pull entries remain here — Upper/Lower/Legs are fully rewritten by
+  // seedDefaultTemplates() on every SEED_VERSION bump, so patching their old teId→exId
+  // pairs here would stomp the freshly-seeded (and now different) exercise order.
   const seedExMigrations: [string, string][] = [
     ['seed_push_e1', 'Leverage_Chest_Press'],
     ['seed_push_e3', 'Dumbbell_Flyes'],
@@ -628,16 +668,6 @@ const _doInit = async () => {
     ['seed_pull_e3', 'Seated_Cable_Rows'],
     ['seed_pull_e6', 'Incline_Dumbbell_Curl'],
     ['seed_pull_e7', 'seed_kneeling_band_pulldown'],
-    ['seed_legs_e1', 'Barbell_Squat'],
-    ['seed_legs_e4', 'Stiff-Legged_Dumbbell_Deadlift'],
-    ['seed_upper_e1', 'Smith_Machine_Incline_Bench_Press'],
-    ['seed_upper_e3', 'One-Arm_Dumbbell_Row'],
-    ['seed_upper_e4', 'wger_1730'],
-    ['seed_upper_e6', 'Machine_Triceps_Extension'],
-    ['seed_lower_e2', 'Leg_Press'],
-    ['seed_lower_e3', 'Seated_Leg_Curl'],
-    ['seed_lower_e4', 'Dumbbell_Lunges'],
-    ['seed_lower_e8', 'Plank'],
   ];
   for (const [teId, exId] of seedExMigrations) {
     await database.runAsync(
@@ -645,32 +675,38 @@ const _doInit = async () => {
       exId, teId
     );
   }
-  // Fix reps for Chin-Up sets in Upper template (old seed had 8/6/5, now 10/8/7)
-  await database.runAsync('UPDATE template_exercise_sets SET target_reps = 10 WHERE id = ?', 'seed_upper_e2_s1');
-  await database.runAsync('UPDATE template_exercise_sets SET target_reps = 8  WHERE id = ?', 'seed_upper_e2_s2');
-  await database.runAsync('UPDATE template_exercise_sets SET target_reps = 7  WHERE id = ?', 'seed_upper_e2_s3');
   // Fix reps for Kneeling Pulldown Band sets in Pull template (old seed had 10, now 12)
   await database.runAsync('UPDATE template_exercise_sets SET target_reps = 12 WHERE id IN (?, ?, ?)', 'seed_pull_e7_s1', 'seed_pull_e7_s2', 'seed_pull_e7_s3');
 
-  // Rename exercises to match user's own naming convention — version 2
-  const EXERCISE_NAME_VERSION = 2;
+  // Rename exercises to match user's own naming convention — version 3
+  const EXERCISE_NAME_VERSION = 3;
   const nameVerRow = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM user_settings WHERE key = 'exercise_name_version'"
   );
   if (!nameVerRow || parseInt(nameVerRow.value, 10) < EXERCISE_NAME_VERSION) {
     const renames: [string, string][] = [
-      // ── Upper (noms de l'app Strong de l'utilisateur) ──────────────────────
+      // ── Upper A (noms de l'app Strong de l'utilisateur) ─────────────────────
       ['Smith_Machine_Incline_Bench_Press', 'Développé incliné Smith'],
       ['Chin-Up',                           'Tractions supination'],
       ['One-Arm_Dumbbell_Row',              'Rowing haltères sur banc'],
       ['wger_1730',                         'Épaules latérale poulie'],
       ['Hammer_Curls',                      'Hammer curl'],
+      ['Incline_Dumbbell_Curl',             'Incline curl'],
+      ['Triceps_Pushdown',                  'Triceps pushdown'],
+      ['Cable_Rope_Overhead_Triceps_Extension', 'Triceps overhead poulie basse'],
       ['Machine_Triceps_Extension',         'Triceps extension'],
-      // ── Lower (noms de l'app Strong de l'utilisateur) ──────────────────────
+      // ── Upper B ──────────────────────────────────────────────────────────
+      ['Butterfly',                         'Pec fly'],
+      // ── Lower A / Lower B (noms de l'app Strong de l'utilisateur) ──────────
       ['Barbell_Deadlift',                  'Deadlift'],
       ['Leg_Press',                         'Presse'],
       ['Seated_Leg_Curl',                   'Curl ischios machine'],
       ['Dumbbell_Lunges',                   'Fentes marchées'],
+      ['wger_206',                          'Fentes marchées'],
+      ['Standing_Calf_Raises',              'Mollets debout'],
+      ['Seated_Calf_Raise',                 'Mollets assis'],
+      ['Split_Squat_with_Dumbbells',        'Bulgarian split squat'],
+      ['Stiff-Legged_Barbell_Deadlift',     'Soulevé de terre jambes tendues'],
       ['Ab_Crunch_Machine',                 'Machine abdos'],
       ['Thigh_Abductor',                    'Abducteur ouvert'],
       ['Thigh_Adductor',                    'Adducteur fermer'],
@@ -685,10 +721,9 @@ const _doInit = async () => {
       // ── Pull ───────────────────────────────────────────────────────────────
       ['Wide-Grip_Lat_Pulldown',            'Tirage vertical prise large'],
       ['Leverage_Iso_Row',                  'Rowing machine assis'],
-      ['Seated_Cable_Rows',                 'Rowing câble assis'],
-      ['Reverse_Machine_Flyes',             'Écarté arrière machine'],
+      ['Seated_Cable_Rows',                 'Seated row câble horizontal'],
+      ['Reverse_Machine_Flyes',             'Reverse pec fly'],
       ['Machine_Preacher_Curls',            'Curl pupitre machine'],
-      ['Incline_Dumbbell_Curl',             'Curl incliné haltères'],
       ['seed_kneeling_band_pulldown',       'Tirage nuque élastique'],
       // ── Legs ───────────────────────────────────────────────────────────────
       ['Barbell_Squat',                     'Squat barre'],
@@ -1177,6 +1212,7 @@ export type WorkoutTemplateExercise = {
   reps: number;
   rest_seconds: number;
   order_index: number;
+  superset_group_id: string | null;
   name: string;
   muscle: string;
   equipment: string;
@@ -1270,6 +1306,24 @@ export const updateTemplateExercisesOrder = async (orderedIds: string[]): Promis
   }
 };
 
+export const setTemplateExercisesSupersetGroup = async (templateExerciseIds: string[], groupId: string): Promise<void> => {
+  const database = await openDatabase();
+  for (const id of templateExerciseIds) {
+    await database.runAsync(
+      'UPDATE workout_template_exercises SET superset_group_id = ? WHERE id = ?',
+      groupId, id
+    );
+  }
+};
+
+export const clearTemplateSupersetGroup = async (templateId: string, groupId: string): Promise<void> => {
+  const database = await openDatabase();
+  await database.runAsync(
+    'UPDATE workout_template_exercises SET superset_group_id = NULL WHERE template_id = ? AND superset_group_id = ?',
+    templateId, groupId
+  );
+};
+
 export const addTemplateExerciseSet = async (templateExerciseId: string): Promise<TemplateExerciseSet | null> => {
   const database = await openDatabase();
   const existing = await database.getFirstAsync<{ maxIdx: number; reps: number; rest: number; weight: number }>(
@@ -1325,7 +1379,7 @@ export const getWorkoutTemplateDetail = async (templateId: string): Promise<Work
   const exercises = await database.getAllAsync<WorkoutTemplateExercise>(
     `SELECT
        wte.id, wte.template_id, wte.exercise_id, wte.sets, wte.reps,
-       wte.rest_seconds, wte.order_index, e.name, e.muscle, e.equipment, e.image
+       wte.rest_seconds, wte.order_index, wte.superset_group_id, e.name, e.muscle, e.equipment, e.image
      FROM workout_template_exercises wte
      JOIN exercises e ON e.id = wte.exercise_id
      WHERE wte.template_id = ?
@@ -1444,6 +1498,7 @@ export type WorkoutSetRow = {
   actual_weight: number | null;
   completed_at: string | null;
   set_type: string;
+  superset_group_id: string | null;
   name: string;
   muscle: string;
   equipment: string;
@@ -1475,8 +1530,8 @@ export const startWorkoutFromTemplate = async (templateId: string): Promise<stri
   for (const ex of template.exercises) {
     const workoutExerciseId = `${workoutId}_${ex.exercise_id}`;
     await database.runAsync(
-      'INSERT INTO workout_exercises (id, workout_id, exercise_id, order_index) VALUES (?, ?, ?, ?)',
-      workoutExerciseId, workoutId, ex.exercise_id, ex.order_index
+      'INSERT INTO workout_exercises (id, workout_id, exercise_id, order_index, superset_group_id) VALUES (?, ?, ?, ?, ?)',
+      workoutExerciseId, workoutId, ex.exercise_id, ex.order_index, ex.superset_group_id
     );
 
     // Use per-set config from template_exercise_sets when available
@@ -1529,6 +1584,7 @@ export const getWorkoutSessionDetail = async (workoutId: string): Promise<Workou
        ws.id, ws.workout_id, ws.exercise_id, ws.set_index, ws.target_reps,
        ws.target_weight, ws.rest_seconds, ws.actual_reps, ws.actual_weight,
        ws.completed_at, COALESCE(ws.set_type, 'normal') as set_type,
+       we.superset_group_id,
        e.name, e.muscle, e.equipment
      FROM workout_sets ws
      JOIN exercises e ON e.id = ws.exercise_id
@@ -1610,7 +1666,7 @@ export const addSetToWorkout = async (workoutId: string, exerciseId: string): Pr
   return {
     id: setId, workout_id: workoutId, exercise_id: exerciseId,
     set_index: newIndex, target_reps: defaultReps, target_weight: defaultWeight, rest_seconds: defaultRest,
-    actual_reps: null, actual_weight: null, completed_at: null, set_type: 'normal',
+    actual_reps: null, actual_weight: null, completed_at: null, set_type: 'normal', superset_group_id: null,
     name: exercise?.name ?? '', muscle: exercise?.muscle ?? '', equipment: exercise?.equipment ?? '',
   };
 };

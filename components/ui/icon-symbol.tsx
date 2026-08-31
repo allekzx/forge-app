@@ -55,6 +55,7 @@ const MAPPING = {
   'minus.circle.fill': 'remove-circle',
   'minus.circle': 'remove-circle-outline',
   'circle': 'radio-button-unchecked',
+  'link': 'link',
 } as IconMapping;
 
 /**

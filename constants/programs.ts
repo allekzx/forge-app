@@ -64,7 +64,7 @@ export const PROGRAMS: Program[] = [
     tagline: 'Tous les muscles 2× — le split le plus efficace',
     description:
       'Upper A (polyvalent) et Upper B (pecs + dos + épaules variés) travaillent le haut du corps avec des exercices différents. ' +
-      'Lower A (deadlift) et Lower B (squat) font de même pour les jambes. ' +
+      'Lower A (squat) et Lower B (deadlift) font de même pour les jambes. ' +
       'Chaque groupe musculaire est stimulé 2 fois par semaine sans jamais répéter le même exercice.',
     muscles: 'Tous les groupes 2×/semaine',
     recommended: true,

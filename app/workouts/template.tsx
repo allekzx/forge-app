@@ -24,12 +24,14 @@ import {
   WorkoutTemplateDetail,
   WorkoutTemplateExercise,
   addTemplateExerciseSet,
+  clearTemplateSupersetGroup,
   deleteTemplate,
   deleteTemplateExerciseSet,
   getActiveWorkout,
   getTemplateExerciseSets,
   getWorkoutTemplateDetail,
   initDatabase,
+  setTemplateExercisesSupersetGroup,
   startWorkoutFromTemplate,
   updateTemplateExerciseSet,
   updateTemplateExerciseSetType,
@@ -104,6 +106,35 @@ export default function WorkoutTemplateScreen() {
     [exercises[idx], exercises[swapIdx]] = [exercises[swapIdx], exercises[idx]];
     setTemplate(prev => prev ? { ...prev, exercises } : prev);
     await updateTemplateExercisesOrder(exercises.map(e => e.id));
+  };
+
+  const handleToggleSuperset = async (index: number) => {
+    if (!template) return;
+    const exercises = [...template.exercises];
+    const a = exercises[index];
+    const b = exercises[index + 1];
+    if (!a || !b) return;
+
+    if (a.superset_group_id && a.superset_group_id === b.superset_group_id) {
+      // Already linked together — dissolve the whole group
+      const groupId = a.superset_group_id;
+      const updated = exercises.map(e => e.superset_group_id === groupId ? { ...e, superset_group_id: null } : e);
+      setTemplate(prev => prev ? { ...prev, exercises: updated } : prev);
+      await clearTemplateSupersetGroup(template.id, groupId);
+      return;
+    }
+
+    // Link a and b — reuse an existing group id when either already has one (merge), else create one
+    const groupId = a.superset_group_id ?? b.superset_group_id ?? `spgrp_${Date.now()}`;
+    const bOldGroup = b.superset_group_id;
+    const updated = exercises.map(e => {
+      if (e.id === a.id || e.id === b.id) return { ...e, superset_group_id: groupId };
+      if (bOldGroup && e.superset_group_id === bOldGroup) return { ...e, superset_group_id: groupId };
+      return e;
+    });
+    setTemplate(prev => prev ? { ...prev, exercises: updated } : prev);
+    const idsInGroup = updated.filter(e => e.superset_group_id === groupId).map(e => e.id);
+    await setTemplateExercisesSupersetGroup(idsInGroup, groupId);
   };
 
   const handleSetTypeChange = async (setId: string, newType: string, exerciseId: string) => {
@@ -267,23 +298,30 @@ export default function WorkoutTemplateScreen() {
               </View>
             </View>
           }
-          renderItem={({ item, index }) => (
-            <ExerciseCard
-              exercise={item}
-              sets={exerciseSets[item.id] ?? []}
-              isFirst={index === 0}
-              isLast={index === template.exercises.length - 1}
-              colors={colors}
-              screenWidth={screenWidth}
-              onMoveUp={() => handleMoveExercise(item.id, 'up')}
-              onMoveDown={() => handleMoveExercise(item.id, 'down')}
-              onAddSet={() => handleAddSet(item.id)}
-              onDeleteSet={(setId) => handleDeleteSet(setId, item.id)}
-              onSetTypeTap={(setId, currentType) => setSetTypePicker({ setId, currentType, exerciseId: item.id })}
-              onRepsChange={(setId, v) => updateTemplateExerciseSet(setId, { target_reps: v })}
-              onRestChange={(setId, v) => updateTemplateExerciseSet(setId, { rest_seconds: v })}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const next = template.exercises[index + 1];
+            const isLinkedWithNext = !!next && !!item.superset_group_id && item.superset_group_id === next.superset_group_id;
+            return (
+              <ExerciseCard
+                exercise={item}
+                sets={exerciseSets[item.id] ?? []}
+                isFirst={index === 0}
+                isLast={index === template.exercises.length - 1}
+                colors={colors}
+                screenWidth={screenWidth}
+                nextExerciseName={next?.name ?? null}
+                isLinkedWithNext={isLinkedWithNext}
+                onToggleSuperset={next ? () => handleToggleSuperset(index) : undefined}
+                onMoveUp={() => handleMoveExercise(item.id, 'up')}
+                onMoveDown={() => handleMoveExercise(item.id, 'down')}
+                onAddSet={() => handleAddSet(item.id)}
+                onDeleteSet={(setId) => handleDeleteSet(setId, item.id)}
+                onSetTypeTap={(setId, currentType) => setSetTypePicker({ setId, currentType, exerciseId: item.id })}
+                onRepsChange={(setId, v) => updateTemplateExerciseSet(setId, { target_reps: v })}
+                onRestChange={(setId, v) => updateTemplateExerciseSet(setId, { rest_seconds: v })}
+              />
+            );
+          }}
         />
       )}
 
@@ -333,6 +371,9 @@ type ExerciseCardProps = {
   isLast: boolean;
   colors: any;
   screenWidth: number;
+  nextExerciseName: string | null;
+  isLinkedWithNext: boolean;
+  onToggleSuperset?: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onAddSet: () => void;
@@ -343,14 +384,23 @@ type ExerciseCardProps = {
 };
 
 function ExerciseCard({
-  exercise, sets, isFirst, isLast, colors, screenWidth,
+  exercise, sets, isFirst, isLast, colors, screenWidth, nextExerciseName, isLinkedWithNext, onToggleSuperset,
   onMoveUp, onMoveDown, onAddSet, onDeleteSet, onSetTypeTap, onRepsChange, onRestChange,
 }: ExerciseCardProps) {
   // Compute available width for inputs: screen - list padding (32) - card padding (28) - badge (44) - delete (36) - gaps (3×8=24)
   const inputWidth = Math.max(48, Math.floor((screenWidth - 32 - 28 - 44 - 36 - 24) / 2));
   const accent = muscleColor(exercise.muscle);
+  const inSuperset = !!exercise.superset_group_id;
   return (
-    <View style={[s.card, { backgroundColor: colors.card }]}>
+    <View style={[s.card, { backgroundColor: colors.card }, inSuperset && { borderLeftWidth: 3, borderLeftColor: '#F59E0B' }]}>
+      {/* Superset badge */}
+      {inSuperset && (
+        <View style={[s.supersetBadge, { backgroundColor: '#F59E0B20' }]}>
+          <IconSymbol name="link" size={11} color="#F59E0B" />
+          <Text style={[s.supersetBadgeText, { color: '#F59E0B' }]}>SUPERSET</Text>
+        </View>
+      )}
+
       {/* Card header */}
       <View style={s.cardHeader}>
         {/* Badge muscle coloré */}
@@ -420,6 +470,32 @@ function ExerciseCard({
         <IconSymbol name="plus.circle" size={16} color={colors.tint} />
         <Text style={[s.addSetText, { color: colors.tint }]}>Ajouter un set</Text>
       </TouchableOpacity>
+
+      {/* Superset toggle — link/unlink this exercise with the next one in the list */}
+      {onToggleSuperset && (
+        <TouchableOpacity
+          onPress={onToggleSuperset}
+          style={[
+            s.supersetToggle,
+            isLinkedWithNext
+              ? { backgroundColor: '#F59E0B15', borderColor: '#F59E0B60' }
+              : { borderColor: colors.icon + '40' },
+          ]}
+          activeOpacity={0.7}
+          accessibilityLabel={isLinkedWithNext ? 'Dissocier le superset' : 'Créer un superset avec l\'exercice suivant'}
+        >
+          <IconSymbol
+            name="link"
+            size={14}
+            color={isLinkedWithNext ? '#F59E0B' : colors.icon}
+          />
+          <Text style={[s.supersetToggleText, { color: isLinkedWithNext ? '#F59E0B' : colors.icon }]} numberOfLines={1}>
+            {isLinkedWithNext
+              ? `Superset avec ${nextExerciseName} · Dissocier`
+              : `Enchaîner en superset avec ${nextExerciseName}`}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -587,6 +663,30 @@ const s = StyleSheet.create({
 
   // Exercise card
   card: { borderRadius: 14, padding: 14, gap: 0 },
+  supersetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  supersetBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
+  supersetToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 8,
+    paddingHorizontal: 8,
+  },
+  supersetToggleText: { fontSize: 12, fontWeight: '600', flexShrink: 1 },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
